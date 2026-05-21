@@ -1282,7 +1282,7 @@ aws s3 cp document.pdf s3://w6-rag-documents/doc.pdf \
 
 ```
 [CHÈN ẢNH CHỤP 1: Trusted Advisor console > Cost Optimization hiển thị "Unattached Elastic IPs" finding với trạng thái trước]
-<img width="1552" height="727" alt="image" src="https://github.com/user-attachments/assets/bb2af0ad-39ac-4994-b934-52f79fe0284a" />
+<img width="1552" height="727" alt="image" src="https://github.com/user-attachments/assets/3594189e-a7b9-4dc0-85d0-080a07794389" />
 [CHÈN ẢNH CHỤP 3: Cùng views SAU remediation hiển thị findings resolved]
 ```
 
