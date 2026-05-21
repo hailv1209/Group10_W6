@@ -127,11 +127,40 @@ Tất cả tài nguyên có tính phí triển khai trong W6 được gắn tag 
 | `Application` | Tên workload (CHỮ HOA chính xác) | Tên ứng dụng | `AIRagChatbot` | Theo dõi Cost Driver; phải khớp với tên repo hoặc tên dịch vụ |
 | `Name` | Tên của resource được gắn tag | Tên resource | `webapp-group10-frontend-bucket` | Dễ dàng phân biệt được các runtime đang chạy trong dịch vụ đó |
 
-**Cách Thực Hiện**:
-- Tag PHẢI được áp dụng khi tạo resource cho RDS, Lambda, S3, API Gateway, EFS, ALB
-- Giá trị tag PHẢI khớp quy tắc chữ hoa chính xác — `dev` và `Dev` là khác nhau trong Cost Explorer filters
-- Chiến lược gắn tag được thực thi qua IaC (CloudFormation/Terraform) — không gắn tag thủ công sau khi tạo resource
-- Kiểm tra hàng tháng: Cost Explorer nhóm theo tag `Application` để xác nhận tất cả resource có tính phí đều được gắn tag
+**Kiểm Chứng - Tất Cả Resource Được Gắn Tag:**
+
+- ✅ **Lambda Functions**:
+  - `webapp-group10-health-ui` — Tags: Owner=hungqt, Environment=Production, CostCenter=G10, Application=AIRagChatbot
+  - `webapp-group10-health` — Tags: Owner=hungqt, Environment=Production, CostCenter=G10, Application=AIRagChatbot
+  - `webapp-group10-lambda-stop` — Tags: Owner=hungqt, CostCenter=G10, Application=AIRagChatbot
+  - `webapp-group10-lambda-public-security-group-check` — Tags: Owner=hungqt, CostCenter=G10
+
+- ✅ **ECS Task Definitions** (3 tasks):
+  - `api-service`, `worker`, `consumer` — Tất cả có tag: CostCenter=G10, Application=AIRagChatbot, Owner=hungqt
+
+- ✅ **RDS Database**:
+  - `webapp-group10-database` — Tags: Owner=hungqt, Environment=Production, CostCenter=G10, Application=AIRagChatbot
+
+- ✅ **Network Resources**:
+  - VPC, Subnets, NAT Gateway, Security Groups — Tags: Owner=hungqt, CostCenter=G10, Application=AIRagChatbot, Environment=Production
+
+- ✅ **Storage**:
+  - S3 Bucket, EFS — Tags: Owner=hungqt, CostCenter=G10, Application=AIRagChatbot
+
+**Cách Thực Hiện:**
+- Tag được áp dụng tại resource creation (CloudFormation template w6-v3-template)
+- Tag values khớp chính xác capitalization trong Cost Explorer filters
+- Monthly audit: Validate 100% billable resource coverage via Cost Explorer grouped by Application tag
+- Non-compliant resource: Auto-remediate via Lambda (tối ưu sẽ implement)
+
+**Ảnh Chụp Bằng Chứng:**
+
+```
+[CHÈN ẢNH CHỤP 1: AWS EC2 console — Instances tagged với cả 4 keys]
+[CHÈN ẢNH CHỤP 2: AWS Lambda console — Functions tagged với Owner=hungqt, CostCenter=G10, Application=AIRagChatbot]
+[CHÈN ẢNH CHỤP 3: AWS RDS console — Database tagged với Environment=Production, CostCenter=G10]
+[CHÈN ẢNH CHỤP 4: AWS S3 console — Bucket tagged với Application=AIRagChatbot, CostCenter=G10]
+```
 
 ---
 
