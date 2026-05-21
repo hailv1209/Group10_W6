@@ -1190,7 +1190,7 @@ Trusted Advisor cảnh báo backend Security Group cho phép inbound SSH từ In
 
 Sau khi kiểm tra trực tiếp Security Group backend, xác nhận rule SSH public thực sự tồn tại.
 
-<img width="1552" height="727" alt="image" src="https://github.com/user-attachments/assets/a0b86839-2992-4919-a82f-3e288336eb61" />
+<img width="1645" height="652" alt="image" src="https://github.com/user-attachments/assets/992f280b-6434-4501-8b2d-9f7c5413a515" />
 
 > Figure 2 — Backend EC2 Security Group cho phép inbound SSH từ `0.0.0.0/0`.
 
