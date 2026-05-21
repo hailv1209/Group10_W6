@@ -90,7 +90,24 @@
 - **Mở Rộng & Tính Sẵn Sàng Cao (W5)**: ALB với ELB health checks, Auto Scaling Group cho Lambda container via ECS Fargate, triển khai multi-AZ
 
 **Feedback W5 Đã Xử Lý:**
-- [Nếu có: ghi chú các sửa chữa feedback W5, ví dụ: "Giảm cold start latency bằng cách nâng cấp Lambda memory từ 1GB lên 2GB"; nếu không, bỏ qua]
+
+| Feedback | Hành Động Đã Thực Hiện |
+|----------|-------------------------|
+| **Application Recap còn để text mẫu và chưa phản ánh feedback W4** | Đã viết lại toàn bộ phần *Application Recap* theo đúng kiến trúc thực tế của hệ thống AIChat. Đồng thời bổ sung nội dung phản hồi từ W4 và mô tả các thay đổi đã thực hiện trong W5 để cải thiện tính nhất quán của tài liệu. |
+| **EFS ID và region không đồng nhất giữa các phần** | Đã rà soát và đồng bộ lại toàn bộ EFS ID trong tài liệu. Region cũng được chuẩn hóa thống nhất sang `us-east-1` để khớp với cấu hình mount target và hạ tầng triển khai thực tế. |
+| **Sample Flow Log sử dụng ví dụ generic không phù hợp với kiến trúc thực tế** | Đã thay thế toàn bộ sample Flow Log cũ bằng dữ liệu capture thực tế từ hệ thống triển khai. Flow Log hiện sử dụng traffic PostgreSQL (`dstport=5432`) đúng với kiến trúc single-VPC và Amazon RDS PostgreSQL đang sử dụng trong project. |
+| **Bảng Summary chứa thông tin mâu thuẫn với phần triển khai thực tế** | Đã cập nhật lại bảng Summary để phản ánh đúng kiến trúc triển khai hiện tại, loại bỏ các nội dung không còn sử dụng như `VPC Peering` và `Reserved Concurrency`. |
+| **Provisioned Concurrency=2 gây chi phí cao cho health-check Lambda** | Đã đánh giá lại workload và tối ưu chi phí bằng cách điều chỉnh chiến lược concurrency cho Lambda health-check. Đồng thời bổ sung giải thích về trade-off giữa latency và cost trong phần cost optimization của tài liệu W6. |
+
+#### Kết Quả Sau Khi Chỉnh Sửa
+- Tài liệu hiện đã đồng bộ giữa:
+  - Kiến trúc triển khai
+  - Cost optimization
+  - Networking
+  - Monitoring
+  - Security configuration
+- Các ví dụ và log minh họa đều được cập nhật từ môi trường triển khai thực tế thay vì sử dụng sample generic từ tài liệu AWS
+- Các cấu hình liên quan đến chi phí đã được rà soát nhằm phù hợp hơn với mục tiêu cost-aware architecture trong W6
 
 ---
 
