@@ -132,7 +132,7 @@ EC2 và RDS là 2 nguyên nhân chi phí hàng đầu (~71% cộng lại). Đi�
 | **Loại Budget** | hàng ngày |
 | **Giới Hạn Số Tiền** | $100 |
 | **Ngưỡng Cảnh Báo** | ngưỡng trên $100  |
-| **Người Nhận Cảnh Báo** | SNS topic cho thông báo nhóm |
+| **Người Nhận Cảnh Báo** | Gửi event tới Lambda function để tắt các resource không có tag Environment = Production |
    
 **Ảnh Chụp Bằng Chứng:**
 
