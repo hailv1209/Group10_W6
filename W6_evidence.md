@@ -158,23 +158,30 @@ Tất cả tài nguyên có tính phí triển khai trong W6 được gắn tag 
     <img width="1104" height="696" alt="image" src="https://github.com/user-attachments/assets/73579a4b-156a-4318-8b78-42fc61f10acd" />
 
 - ✅ **Network Resources**:
-  - VPC, Subnets, NAT Gateway, Security Groups — Tags: Owner=hungqt, CostCenter=G10, Application=AIRagChatbot, Environment=Production
+  - VPC — Tags: Owner=hungqt, CostCenter=G10, Application=AIRagChatbot, Environment=Production
+    
     <img width="746" height="602" alt="image" src="https://github.com/user-attachments/assets/3e62a996-3d5e-4705-9834-0b7a778d1d08" />
+    
+  - Subnets — Tags: Owner=hungqt, CostCenter=G10, Application=AIRagChatbot, Environment=Production
+    
     <img width="867" height="675" alt="image" src="https://github.com/user-attachments/assets/0fe59c70-787e-484e-95e4-e0f2d88c70dc" />
+    
+  - NAT Gateway — Tags: Owner=hungqt, CostCenter=G10, Application=AIRagChatbot, Environment=Production
+    
     <img width="585" height="682" alt="image" src="https://github.com/user-attachments/assets/97bbe30a-36ea-4c61-92e5-2575b0ff4fdd" />
+    
+  - Security Groups — Tags: Owner=hungqt, CostCenter=G10, Application=AIRagChatbot, Environment=Production
+    
     <img width="683" height="688" alt="image" src="https://github.com/user-attachments/assets/1521cb75-6661-4910-9b27-a4644657fc18" />
 
 - ✅ **Storage**:
-  - S3 Bucket, EFS — Tags: Owner=hungqt, CostCenter=G10, Application=AIRagChatbot, Environment=Production
+  - S3 Bucket — Tags: Owner=hungqt, CostCenter=G10, Application=AIRagChatbot, Environment=Production
+    
     <img width="1423" height="654" alt="image" src="https://github.com/user-attachments/assets/d3730e47-bb3c-487c-96df-cc137992a96f" />
+    
+  - EFS — Tags: Owner=hungqt, CostCenter=G10, Application=AIRagChatbot, Environment=Production
+     
     <img width="1182" height="685" alt="image" src="https://github.com/user-attachments/assets/7fb1cec1-961d-4e00-98cc-4b93b0b8f767" />
-
-
-**Cách Thực Hiện:**
-- Tag được áp dụng tại resource creation (CloudFormation template w6-v3-template)
-- Tag values khớp chính xác capitalization trong Cost Explorer filters
-- Monthly audit: Validate 100% billable resource coverage via Cost Explorer grouped by Application tag
-- Non-compliant resource: Auto-remediate via Lambda (tối ưu sẽ implement)
 
 ---
 
