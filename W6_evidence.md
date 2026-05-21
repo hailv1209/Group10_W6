@@ -177,7 +177,7 @@ EC2 và RDS là 2 nguyên nhân chi phí hàng đầu (~71% cộng lại). Đi�
 **Trigger:** EventBridge Scheduler (hàng ngày lúc 00:00 theo múi giờ `Asia/Saigon`) + AWS Budgets → SNS
 
 **Mô tả ngắn:**
-Lambda này quét các tài nguyên `RDS DB instance` và `ECS service`, bỏ qua resource có `Environment=Production` hoặc `Environment=Development` kèm `Keep=True`, sau đó dừng RDS hoặc scale ECS service về `desiredCount=0`.
+Lambda này quét các tài nguyên `RDS DB instance` và `ECS service`, bỏ qua resource có `Environment=Production`, sau đó dừng RDS hoặc scale ECS service về `desiredCount=0`.
 
 **IAM Role Policy Snapshot (Current State):**
 
