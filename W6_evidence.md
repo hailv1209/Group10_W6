@@ -120,16 +120,26 @@ EC2 và RDS là 2 nguyên nhân chi phí hàng đầu (~71% cộng lại). Đi�
 
 | Cài Đặt | Giá Trị |
 |---------|-------|
-| **Loại Budget** | Lặp lại hàng ngày |
-| **Giới Hạn Số Tiền** | USD $150 |
-| **Ngưỡng Cảnh Báo** | 80% ($120 thực tế) |
+| **Tên loại Budget** | `webapp-group10-budget-150` |
+| **Loại Budget** | từ ngày 20/05-22/05 |
+| **Giới Hạn Số Tiền** | $145 |
+| **Ngưỡng Cảnh Báo** | ngưỡng 1 trên $75, ngưỡng 2 trên $90, ngưỡng 3 cảnh báo $145  |
 | **Người Nhận Cảnh Báo** | SNS topic cho thông báo nhóm |
 
+| Cài Đặt | Giá Trị |
+|---------|-------|
+| **Tên loại Budget** | `webapp-group10-daily-budget-100` |
+| **Loại Budget** | hàng ngày |
+| **Giới Hạn Số Tiền** | $100 |
+| **Ngưỡng Cảnh Báo** | ngưỡng trên $100  |
+| **Người Nhận Cảnh Báo** | SNS topic cho thông báo nhóm |
+   
 **Ảnh Chụp Bằng Chứng:**
 
-```
-[CHÈN ẢNH CHỤP: AWS Budgets console hiển thị daily recurring budget với giới hạn $150 và alert được cấu hình]
-```
+- `webapp-group10-budget-150`<img width="1387" height="800" alt="image" src="https://github.com/user-attachments/assets/fe7ad90e-75fe-458a-bccc-6a2611741e0a" />
+
+- `webapp-group10-daily-budget-100`<img width="1254" height="759" alt="image" src="https://github.com/user-attachments/assets/8481c38a-f561-480f-a6bb-e509ad606fb8" />
+
 
 ---
 
