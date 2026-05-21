@@ -701,11 +701,8 @@ resourcePath           | avg_latency | max_latency | request_count
 ### Thành Phần 1: Lambda Function (Detect & Auto-Remediate)
 
 **Tên Function:** `webapp-group10-health`  
-**Ngôn Ngữ:** Python 3.11  
-**IAM Role:** `w6-security-remediate-role` (Least-privilege)  
-**Trigger:** EventBridge rule trên CloudTrail API events + Tùy chọn: Daily scheduled scan
-
-**Vấn Đề Bảo Mật Được Chọn**: Mở Security Group (0.0.0.0/0 trên port 22/3389)
+**Ngôn Ngữ:** Python 3.12
+**IAM Role:** `webapp-group10-lambda-health`
 
 **IAM Role Policy (Least-Privilege):**
 
@@ -1030,6 +1027,8 @@ def lambda_handler(event, context):
 ```
 [CHÈN ẢNH CHỤP: AWS Lambda console > w6-security-auto-remediate hiển thị function code, execution role, và recent invocations với timestamp]
 ```
+<img width="1663" height="454" alt="image" src="https://github.com/user-attachments/assets/42606911-6a02-4148-ad1b-f864a9af6c07" />
+
 
 ---
 
