@@ -509,12 +509,11 @@ Period: 5 minutes
 ```
 
 **Ảnh Chụp Bằng Chứng:**
-```
+
 <img width="1563" height="713" alt="image" src="https://github.com/user-attachments/assets/ffdc3251-c58c-4d25-a390-e3828daba66a" />
 
 
 <img width="1652" height="791" alt="image" src="https://github.com/user-attachments/assets/f1f3c7f8-243e-44c9-86ac-569b96bff409" />
-```
 
 ---
 
@@ -539,12 +538,12 @@ Nhóm đã cấu hình 2 Alarms theo sát business logic của ứng dụng (d�
 
 **Ảnh Chụp Bằng Chứng:**
 
-```
 <img width="1550" height="808" alt="image" src="https://github.com/user-attachments/assets/c7eefd5e-7edd-4fc9-a031-444a1ddbf029" />
 
 <img width="1550" height="800" alt="image" src="https://github.com/user-attachments/assets/c302f4a8-88ff-4d4d-8626-2df004c37808" />
 
-```
+<img width="1284" height="693" alt="image" src="https://github.com/user-attachments/assets/7611338a-54a6-43b5-8dbf-63caa9926344" />
+
 
 ---
 
@@ -576,17 +575,7 @@ fields @timestamp, @message
 
 **Ảnh Chụp Bằng Chứng:**
 
-```
-[CHÈN ẢNH CHỤP 1: Giao diện CloudWatch Logs Insights hiển thị Query definition với lệnh query Health Check, log group được chọn và query đã được lưu với tên "webapp-group10-alb-target-group-health-check-query"]
-[CHÈN ẢNH CHỤP 2: Giao diện hiển thị biểu đồ Logs quét được 483 records trong 9.5s và bảng kết quả thống kê sức khỏe ALB healthCheckCount: 246]
-```
-
-**Xác Minh Saved Query:**
-
-```
 <img width="1850" height="798" alt="image" src="https://github.com/user-attachments/assets/cd2a63e8-c6b3-4528-892d-d5d238e19446" />
-
-```
 
 ---
 
