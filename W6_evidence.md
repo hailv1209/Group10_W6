@@ -1083,9 +1083,7 @@ Sau khi kiểm tra trực tiếp Security Group backend, xác nhận rule SSH pu
 
 Nhóm đã revoke public SSH rule và chỉ giữ private/internal administrative access flow.
 
-```text
-[CHÈN ẢNH 3: Security Group sau khi revoke SSH rule]
-```
+<img width="1672" height="723" alt="image" src="https://github.com/user-attachments/assets/d685cda1-927b-4ebd-8668-d34984bb7d9f" />
 
 > Figure 3 — Public SSH rule đã được remove khỏi backend Security Group.
 
@@ -1145,7 +1143,7 @@ Nhóm bật toàn bộ Block Public Access settings để harden bucket theo AWS
 
 Sau remediation, Trusted Advisor không còn hiển thị S3 bucket permissions warning.
 
-<img width="1672" height="723" alt="image" src="https://github.com/user-attachments/assets/120cce33-84f3-41cc-b357-f6a2d9dcfe2c" />
+<img width="1887" height="187" alt="image" src="https://github.com/user-attachments/assets/0d18814b-b77c-4a40-890e-a321cf4c50f1" />
 
 > Figure 8 — Trusted Advisor không còn cảnh báo S3 bucket permissions.
 
