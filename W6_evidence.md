@@ -748,298 +748,315 @@ resourcePath           | avg_latency | max_latency | request_count
 
 ```python
 """
-AWS Lambda health checker for ai_agent infrastructure.
+Stop billable RDS, ECS, and EC2 compute that is not explicitly protected.
 
-Checks: PostgreSQL (Aurora), Redis (ElastiCache), AWS Bedrock,
-Bedrock Knowledge Base, EFS mount, and the main FastAPI app.
+Protection rule:
+- Any resource tagged Environment=Production is skipped.
+- Any resource tagged Environment=Development and Keep=True is skipped.
+- All other RDS, ECS, and EC2 targets are eligible unless narrowed by TARGET_ENVIRONMENT.
 
-All checks run in parallel with per-check timeouts so one
-unreachable service cannot block the entire response.
+EC2 handling:
+- Instances: StopInstances when running.
 
-Deploy in the same VPC private subnets as the backend ECS service
-so it can reach RDS, Redis, and EFS directly.
+RDS handling:
+- DB instances: StopDBInstance when available and currently running.
+- DB clusters: StopDBCluster when available and currently available.
+
+ECS handling:
+- Services: UpdateService desiredCount=0 when currently above zero.
 """
+
+from __future__ import annotations
 
 import json
 import os
-import time
-import urllib.request
-from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from datetime import datetime, timezone
+from typing import Any
 
 import boto3
-import psycopg2
-import redis as redis_lib
-from botocore.config import Config
-
-CHECK_TIMEOUT = int(os.environ.get("CHECK_TIMEOUT_SECONDS", "8"))
-AWS_REGION = os.environ.get("AWS_REGION", "us-east-1")
-
-_boto_cfg = Config(connect_timeout=5, read_timeout=5, retries={"max_attempts": 1})
-_bedrock_client = boto3.client("bedrock", region_name=AWS_REGION, config=_boto_cfg)
-_bedrock_agent_client = boto3.client("bedrock-agent", region_name=AWS_REGION, config=_boto_cfg)
-_ecs_client = boto3.client("ecs", region_name=AWS_REGION, config=_boto_cfg)
+from botocore.exceptions import ClientError
 
 
-def check_database() -> dict:
-    """Check PostgreSQL (Aurora) connectivity."""
-    host = os.environ.get("POSTGRES_HOST")
-    if not host:
-        return {"status": "skipped", "reason": "POSTGRES_HOST not configured"}
+AWS_REGION = os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
+KEEP_TAG_TRUE_VALUES = {"1", "true", "yes", "y", "on"}
+TARGET_ENVIRONMENT = os.environ.get("TARGET_ENVIRONMENT", "").strip()
+KEEP_TAG_KEY = os.environ.get("KEEP_TAG_KEY", "Keep").strip().lower()
+ENVIRONMENT_TAG_KEY = os.environ.get("ENVIRONMENT_TAG_KEY", "Environment").strip().lower()
+PRODUCTION_ENVIRONMENT_VALUE = os.environ.get("PRODUCTION_ENVIRONMENT_VALUE", "Production").strip().lower()
+DEVELOPMENT_ENVIRONMENT_VALUE = os.environ.get("DEVELOPMENT_ENVIRONMENT_VALUE", "Development").strip().lower()
 
-    port = int(os.environ.get("POSTGRES_PORT", "5432"))
-    user = os.environ.get("POSTGRES_USER", "postgres")
-    password = os.environ.get("POSTGRES_PASSWORD", "")
-    dbname = os.environ.get("POSTGRES_DB", "ai_agent")
-
-    start = time.monotonic()
-    try:
-        conn = psycopg2.connect(
-            host=host, port=port, user=user, password=password,
-            dbname=dbname, connect_timeout=5,
-        )
-        cur = conn.cursor()
-        cur.execute("SELECT 1")
-        cur.close()
-        conn.close()
-        latency_ms = round((time.monotonic() - start) * 1000, 2)
-        return {"status": "healthy", "latency_ms": latency_ms, "type": "aurora-postgresql"}
-    except Exception as e:
-        return {"status": "unhealthy", "error": str(e), "type": "aurora-postgresql"}
+rds = boto3.client("rds", region_name=AWS_REGION)
+ecs = boto3.client("ecs", region_name=AWS_REGION)
+ec2 = boto3.client("ec2", region_name=AWS_REGION)
 
 
-def check_redis() -> dict:
-    """Check Redis (ElastiCache) connectivity."""
-    host = os.environ.get("REDIS_HOST")
-    if not host:
-        return {"status": "skipped", "reason": "REDIS_HOST not configured"}
-
-    port = int(os.environ.get("REDIS_PORT", "6379"))
-    password = os.environ.get("REDIS_PASSWORD")
-    use_ssl = os.environ.get("REDIS_SSL", "true").lower() == "true"
-
-    start = time.monotonic()
-    try:
-        r = redis_lib.Redis(
-            host=host, port=port, password=password,
-            ssl=use_ssl, socket_connect_timeout=5, socket_timeout=5,
-        )
-        r.ping()
-        r.close()
-        latency_ms = round((time.monotonic() - start) * 1000, 2)
-        return {"status": "healthy", "latency_ms": latency_ms}
-    except Exception as e:
-        return {"status": "unhealthy", "error": str(e)}
+def _bool_from_event(event: dict[str, Any], key: str, default: bool) -> bool:
+    value = event.get(key, default)
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in KEEP_TAG_TRUE_VALUES
+    return bool(value)
 
 
-def check_bedrock() -> dict:
-    """Check AWS Bedrock availability by listing foundation models."""
-    start = time.monotonic()
-    try:
-        resp = _bedrock_client.list_foundation_models(byOutputModality="TEXT")
-        model_count = len(resp.get("modelSummaries", []))
-        latency_ms = round((time.monotonic() - start) * 1000, 2)
-        return {
-            "status": "healthy",
-            "latency_ms": latency_ms,
-            "region": AWS_REGION,
-            "available_models": model_count,
+def _tag_map(tags: list[dict[str, str]]) -> dict[str, str]:
+    mapped: dict[str, str] = {}
+    for tag in tags:
+        key = tag.get("Key") or tag.get("key")
+        value = tag.get("Value") or tag.get("value") or ""
+        if key:
+            mapped[str(key).strip().lower()] = str(value).strip()
+    return mapped
+
+
+def _is_keep_protected(tags: dict[str, str]) -> bool:
+    return tags.get(KEEP_TAG_KEY, "").strip().lower() in KEEP_TAG_TRUE_VALUES
+
+
+def _environment_value(tags: dict[str, str]) -> str:
+    return tags.get(ENVIRONMENT_TAG_KEY, "").strip().lower()
+
+
+def _matches_environment(tags: dict[str, str], target_environment: str) -> bool:
+    if not target_environment:
+        return True
+    return _environment_value(tags) == target_environment.lower()
+
+
+def _eligible(tags: dict[str, str], target_environment: str) -> tuple[bool, str]:
+    environment = _environment_value(tags)
+    if environment == PRODUCTION_ENVIRONMENT_VALUE:
+        return False, f"{ENVIRONMENT_TAG_KEY}=Production"
+    if environment == DEVELOPMENT_ENVIRONMENT_VALUE and _is_keep_protected(tags):
+        return False, f"{ENVIRONMENT_TAG_KEY}=Development and {KEEP_TAG_KEY}=True"
+    if not _matches_environment(tags, target_environment):
+        return False, f"Environment tag does not match {target_environment}"
+    return True, "eligible"
+
+
+def _rds_tags(arn: str) -> dict[str, str]:
+    return _tag_map(rds.list_tags_for_resource(ResourceName=arn).get("TagList", []))
+
+
+def _ecs_tags(arn: str) -> dict[str, str]:
+    return _tag_map(ecs.list_tags_for_resource(resourceArn=arn).get("tags", []))
+
+
+def _ec2_tags(instance: dict[str, Any]) -> dict[str, str]:
+    return _tag_map(instance.get("Tags", []))
+
+
+def _record(
+    results: list[dict[str, Any]],
+    service: str,
+    resource_type: str,
+    resource_id: str,
+    action: str,
+    status: str,
+    reason: str = "",
+) -> None:
+    results.append(
+        {
+            "service": service,
+            "resource_type": resource_type,
+            "resource_id": resource_id,
+            "action": action,
+            "status": status,
+            "reason": reason,
         }
-    except Exception as e:
-        return {"status": "unhealthy", "error": str(e), "region": AWS_REGION}
+    )
 
 
-def check_bedrock_kb() -> dict:
-    """Check Bedrock Knowledge Base availability."""
-    kb_id = os.environ.get("BEDROCK_KNOWLEDGE_BASE_ID")
-    if not kb_id:
-        return {"status": "skipped", "reason": "BEDROCK_KNOWLEDGE_BASE_ID not configured"}
+def stop_rds_instances(results: list[dict[str, Any]], dry_run: bool, target_environment: str) -> None:
+    paginator = rds.get_paginator("describe_db_instances")
+    for page in paginator.paginate():
+        for instance in page.get("DBInstances", []):
+            instance_id = instance["DBInstanceIdentifier"]
+            instance_arn = instance["DBInstanceArn"]
+            state = instance.get("DBInstanceStatus", "unknown")
+            engine = instance.get("Engine", "")
+            tags = _rds_tags(instance_arn)
+            eligible, reason = _eligible(tags, target_environment)
 
-    start = time.monotonic()
-    try:
-        resp = _bedrock_agent_client.get_knowledge_base(knowledgeBaseId=kb_id)
-        kb = resp.get("knowledgeBase", {})
-        kb_status = kb.get("status", "UNKNOWN")
-        latency_ms = round((time.monotonic() - start) * 1000, 2)
-        healthy = kb_status == "ACTIVE"
-        return {
-            "status": "healthy" if healthy else "unhealthy",
-            "latency_ms": latency_ms,
-            "knowledge_base_id": kb_id,
-            "kb_status": kb_status,
-        }
-    except Exception as e:
-        return {"status": "unhealthy", "error": str(e), "knowledge_base_id": kb_id}
+            if not eligible:
+                _record(results, "rds", "db-instance", instance_id, "stop", "skipped", reason)
+                continue
+            if state != "available":
+                _record(results, "rds", "db-instance", instance_id, "stop", "skipped", f"state={state}")
+                continue
+            if instance.get("ReadReplicaSourceDBInstanceIdentifier"):
+                _record(results, "rds", "db-instance", instance_id, "stop", "skipped", "read replica")
+                continue
+            if engine.startswith("aurora"):
+                _record(results, "rds", "db-instance", instance_id, "stop", "skipped", "aurora instance stopped via cluster")
+                continue
 
+            if dry_run:
+                _record(results, "rds", "db-instance", instance_id, "stop", "dry_run", reason)
+                continue
 
-def check_efs() -> dict:
-    """Check EFS mount accessibility."""
-    efs_mount = os.environ.get("EFS_MOUNT_DIR", "/mnt/efs")
-
-    start = time.monotonic()
-    try:
-        test_path = os.path.join(efs_mount, ".health_check")
-        with open(test_path, "w") as f:
-            f.write("ok")
-        with open(test_path) as f:
-            content = f.read()
-        os.remove(test_path)
-        latency_ms = round((time.monotonic() - start) * 1000, 2)
-        if content == "ok":
-            return {"status": "healthy", "latency_ms": latency_ms, "mount": efs_mount}
-        return {"status": "unhealthy", "error": "Read/write mismatch", "mount": efs_mount}
-    except Exception as e:
-        return {"status": "unhealthy", "error": str(e), "mount": efs_mount}
-
-
-def check_main_app() -> dict:
-    """Check the main FastAPI backend via its health endpoint."""
-    app_url = os.environ.get("MAIN_APP_HEALTH_URL")
-    if not app_url:
-        return {"status": "skipped", "reason": "MAIN_APP_HEALTH_URL not configured"}
-
-    api_key = os.environ.get("MAIN_APP_API_KEY", "")
-
-    start = time.monotonic()
-    try:
-        req = urllib.request.Request(app_url, method="GET")
-        if api_key:
-            req.add_header("x-api-key", api_key)
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            body = json.loads(resp.read().decode())
-        latency_ms = round((time.monotonic() - start) * 1000, 2)
-        app_status = body.get("status", "unknown")
-        return {
-            "status": "healthy" if app_status == "healthy" else "degraded",
-            "latency_ms": latency_ms,
-            "app_status": app_status,
-        }
-    except Exception as e:
-        return {"status": "unhealthy", "error": str(e)}
-
-
-def check_ecs_services() -> dict:
-    """Check ECS service statuses (backend, worker, scheduler)."""
-    cluster = os.environ.get("ECS_CLUSTER_NAME")
-    if not cluster:
-        return {"status": "skipped", "reason": "ECS_CLUSTER_NAME not configured"}
-
-    try:
-        services_resp = _ecs_client.list_services(cluster=cluster)
-        service_arns = services_resp.get("serviceArns", [])
-
-        if not service_arns:
-            return {"status": "unhealthy", "error": "No services found in cluster"}
-
-        desc = _ecs_client.describe_services(cluster=cluster, services=service_arns)
-        services = {}
-        all_stable = True
-
-        for svc in desc.get("services", []):
-            name = svc["serviceName"]
-            running = svc.get("runningCount", 0)
-            desired = svc.get("desiredCount", 0)
-            svc_status = svc.get("status", "UNKNOWN")
-            stable = running >= desired and svc_status == "ACTIVE"
-            if not stable:
-                all_stable = False
-            services[name] = {
-                "status": "healthy" if stable else "unhealthy",
-                "running": running,
-                "desired": desired,
-                "ecs_status": svc_status,
-            }
-
-        return {
-            "status": "healthy" if all_stable else "degraded",
-            "services": services,
-        }
-    except Exception as e:
-        return {"status": "unhealthy", "error": str(e)}
-
-
-CRITICAL_CHECKS = {"database", "redis"}
-
-CHECKS = {
-    "database": check_database,
-    "redis": check_redis,
-    "bedrock": check_bedrock,
-    "bedrock_kb": check_bedrock_kb,
-    "efs": check_efs,
-    "main_app": check_main_app,
-    "ecs_services": check_ecs_services,
-}
-
-
-def _run_check(name: str, check_fn) -> tuple[str, dict]:
-    """Run a single check with crash protection."""
-    try:
-        return name, check_fn()
-    except Exception as e:
-        return name, {"status": "unhealthy", "error": f"Check crashed: {e}"}
-
-
-def lambda_handler(event, context):
-    """Main Lambda handler - returns JSON health data."""
-    checks = {}
-
-    with ThreadPoolExecutor(max_workers=len(CHECKS)) as executor:
-        futures = {
-            name: executor.submit(_run_check, name, fn)
-            for name, fn in CHECKS.items()
-        }
-        for name, future in futures.items():
             try:
-                _, result = future.result(timeout=CHECK_TIMEOUT)
-                checks[name] = result
-            except TimeoutError:
-                checks[name] = {
-                    "status": "unhealthy",
-                    "error": f"Timed out after {CHECK_TIMEOUT}s",
-                }
-            except Exception as e:
-                checks[name] = {"status": "unhealthy", "error": f"Check crashed: {e}"}
+                rds.stop_db_instance(DBInstanceIdentifier=instance_id)
+                _record(results, "rds", "db-instance", instance_id, "stop", "started", reason)
+            except ClientError as exc:
+                _record(results, "rds", "db-instance", instance_id, "stop", "error", str(exc))
 
-    unhealthy_critical = any(
-        checks.get(name, {}).get("status") != "healthy"
-        for name in CRITICAL_CHECKS
-        if checks.get(name, {}).get("status") != "skipped"
-    )
-    any_unhealthy = any(
-        c.get("status") == "unhealthy"
-        for c in checks.values()
-    )
 
-    if unhealthy_critical:
-        overall = "unhealthy"
-    elif any_unhealthy:
-        overall = "degraded"
-    else:
-        overall = "healthy"
+def stop_rds_clusters(results: list[dict[str, Any]], dry_run: bool, target_environment: str) -> None:
+    paginator = rds.get_paginator("describe_db_clusters")
+    for page in paginator.paginate():
+        for cluster in page.get("DBClusters", []):
+            cluster_id = cluster["DBClusterIdentifier"]
+            cluster_arn = cluster["DBClusterArn"]
+            state = cluster.get("Status", "unknown")
+            engine = cluster.get("Engine", "")
+            tags = _rds_tags(cluster_arn)
+            eligible, reason = _eligible(tags, target_environment)
 
-    body = {
-        "status": overall,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "service": "ai_agent",
-        "checks": checks,
+            if not eligible:
+                _record(results, "rds", "db-cluster", cluster_id, "stop", "skipped", reason)
+                continue
+            if state != "available":
+                _record(results, "rds", "db-cluster", cluster_id, "stop", "skipped", f"state={state}")
+                continue
+            if engine == "docdb":
+                _record(results, "rds", "db-cluster", cluster_id, "stop", "skipped", "docdb is not targeted")
+                continue
+
+            if dry_run:
+                _record(results, "rds", "db-cluster", cluster_id, "stop", "dry_run", reason)
+                continue
+
+            try:
+                rds.stop_db_cluster(DBClusterIdentifier=cluster_id)
+                _record(results, "rds", "db-cluster", cluster_id, "stop", "started", reason)
+            except ClientError as exc:
+                _record(results, "rds", "db-cluster", cluster_id, "stop", "error", str(exc))
+
+
+def stop_ecs_services(results: list[dict[str, Any]], dry_run: bool, target_environment: str) -> None:
+    cluster_paginator = ecs.get_paginator("list_clusters")
+    for cluster_page in cluster_paginator.paginate():
+        for cluster_arn in cluster_page.get("clusterArns", []):
+            service_paginator = ecs.get_paginator("list_services")
+            for service_page in service_paginator.paginate(cluster=cluster_arn):
+                service_arns = service_page.get("serviceArns", [])
+                if not service_arns:
+                    continue
+
+                for service in _describe_ecs_services(cluster_arn, service_arns):
+                    service_arn = service["serviceArn"]
+                    service_name = service["serviceName"]
+                    desired_count = int(service.get("desiredCount", 0))
+                    status = service.get("status", "UNKNOWN")
+                    tags = _ecs_tags(service_arn)
+                    eligible, reason = _eligible(tags, target_environment)
+
+                    if not eligible:
+                        _record(results, "ecs", "service", service_arn, "set_desired_count_0", "skipped", reason)
+                        continue
+                    if status != "ACTIVE":
+                        _record(results, "ecs", "service", service_arn, "set_desired_count_0", "skipped", f"status={status}")
+                        continue
+                    if desired_count == 0:
+                        _record(results, "ecs", "service", service_arn, "set_desired_count_0", "skipped", "desiredCount already 0")
+                        continue
+
+                    if dry_run:
+                        _record(results, "ecs", "service", service_arn, "set_desired_count_0", "dry_run", reason)
+                        continue
+
+                    try:
+                        ecs.update_service(cluster=cluster_arn, service=service_name, desiredCount=0)
+                        _record(results, "ecs", "service", service_arn, "set_desired_count_0", "started", reason)
+                    except ClientError as exc:
+                        _record(results, "ecs", "service", service_arn, "set_desired_count_0", "error", str(exc))
+
+
+def _describe_ecs_services(cluster_arn: str, service_arns: list[str]) -> list[dict[str, Any]]:
+    services: list[dict[str, Any]] = []
+    for index in range(0, len(service_arns), 10):
+        batch = service_arns[index:index + 10]
+        response = ecs.describe_services(cluster=cluster_arn, services=batch)
+        services.extend(response.get("services", []))
+    return services
+
+
+def stop_ec2_instances(results: list[dict[str, Any]], dry_run: bool, target_environment: str) -> None:
+    paginator = ec2.get_paginator("describe_instances")
+    for page in paginator.paginate():
+        for reservation in page.get("Reservations", []):
+            for instance in reservation.get("Instances", []):
+                instance_id = instance["InstanceId"]
+                state = instance.get("State", {}).get("Name", "unknown")
+                tags = _ec2_tags(instance)
+                eligible, reason = _eligible(tags, target_environment)
+
+                if not eligible:
+                    _record(results, "ec2", "instance", instance_id, "stop", "skipped", reason)
+                    continue
+                if state != "running":
+                    _record(results, "ec2", "instance", instance_id, "stop", "skipped", f"state={state}")
+                    continue
+
+                if dry_run:
+                    _record(results, "ec2", "instance", instance_id, "stop", "dry_run", reason)
+                    continue
+
+                try:
+                    ec2.stop_instances(InstanceIds=[instance_id])
+                    _record(results, "ec2", "instance", instance_id, "stop", "started", reason)
+                except ClientError as exc:
+                    _record(results, "ec2", "instance", instance_id, "stop", "error", str(exc))
+
+
+def lambda_handler(event: dict[str, Any] | None, context: Any) -> dict[str, Any]:
+    event = event or {}
+    if isinstance(event.get("body"), str):
+        try:
+            event.update(json.loads(event["body"]))
+        except json.JSONDecodeError:
+            pass
+
+    dry_run = _bool_from_event(event, "dry_run", os.environ.get("DRY_RUN", "false").lower() == "true")
+    target_environment = str(event.get("target_environment", TARGET_ENVIRONMENT)).strip()
+
+    results: list[dict[str, Any]] = []
+    stop_rds_instances(results, dry_run, target_environment)
+    stop_rds_clusters(results, dry_run, target_environment)
+    stop_ecs_services(results, dry_run, target_environment)
+    stop_ec2_instances(results, dry_run, target_environment)
+
+    summary = {
+        "started": sum(1 for result in results if result["status"] == "started"),
+        "dry_run": sum(1 for result in results if result["status"] == "dry_run"),
+        "skipped": sum(1 for result in results if result["status"] == "skipped"),
+        "errors": sum(1 for result in results if result["status"] == "error"),
     }
-
-    status_code = 200 if overall == "healthy" else 503 if overall == "unhealthy" else 207
 
     return {
-        "statusCode": status_code,
-        "headers": {
-            "Content-Type": "application/json",
-            "Cache-Control": "no-cache, no-store",
-        },
-        "body": json.dumps(body, default=str),
+        "statusCode": 200 if summary["errors"] == 0 else 207,
+        "headers": {"Content-Type": "application/json"},
+        "body": json.dumps(
+            {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "dry_run": dry_run,
+                "target_environment": target_environment or None,
+                "summary": summary,
+                "results": results,
+            },
+            default=str,
+        ),
     }
-
 ```
 
-**Ảnh Chụp Bằng Chứng:**
+**Ảnh Chụp Bằng Chứng lambda console:**
 
-<img width="1663" height="454" alt="image" src="https://github.com/user-attachments/assets/42606911-6a02-4148-ad1b-f864a9af6c07" />
+<img width="1798" height="749" alt="image" src="https://github.com/user-attachments/assets/7d745c05-3601-4e1f-a7a5-9853a7cd4d40" />
+
+**Ảnh Chụp Bằng Chứng EventBridge rule (CloudTrail API events) + Daily scan:**
+<img width="1662" height="602" alt="image" src="https://github.com/user-attachments/assets/0568a1ef-d083-44ff-a6b1-50af891848c3" />
+
 
 
 ### Thành Phần 3: Demo Auto-Remediation (Trước/Sau + CloudTrail)
