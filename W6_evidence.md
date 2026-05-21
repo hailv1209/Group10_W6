@@ -136,16 +136,20 @@ Tất cả tài nguyên có tính phí triển khai trong W6 được gắn tag 
 
   - `webapp-group10-health` — Tags: Owner=hungqt, Environment=Production, CostCenter=G10, Application=AIRagChatbot, Name=webapp-group10-health, Environment=Production
     
- <img width="1709" height="522" alt="image" src="https://github.com/user-attachments/assets/d60663b2-7ef2-469e-8745-b8aa970bb6f2" />
+    <img width="1709" height="522" alt="image" src="https://github.com/user-attachments/assets/d60663b2-7ef2-469e-8745-b8aa970bb6f2" />
     
   - `webapp-group10-lambda-stop` — Tags: Owner=hungqt, CostCenter=G10, Application=AIRagChatbot, Application=AIRagChatbot, Name=webapp-group10-lambda-stop, Environment=Production
 
-<img width="1717" height="503" alt="image" src="https://github.com/user-attachments/assets/d3c722bb-5fca-4be0-9129-a8687df9c0cc" />
+    <img width="1717" height="503" alt="image" src="https://github.com/user-attachments/assets/d3c722bb-5fca-4be0-9129-a8687df9c0cc" />
     
   - `webapp-group10-lambda-public-security-group-check` — Tags: Owner=hungqt, CostCenter=G10, Application=AIRagChatbot, Name=webapp-group10-lambda-public-security-group-check, Environment=Production
     
     <img width="1708" height="504" alt="image" src="https://github.com/user-attachments/assets/e2bd7229-dc62-41a3-a789-5ed9f3f8cbdc" />
 
+- ✅ **ECR Repositories** (1 tasks):
+  - `webapp-group10/backend` — Có tag: CostCenter=G10, Application=AIRagChatbot, Owner=hungqt, Environment=Production, Name=webapp-group10-backend-ecr-repo
+    
+    <img width="1382" height="528" alt="image" src="https://github.com/user-attachments/assets/fb672bfc-608f-4ce4-a2e9-05f324a4f831" />
 
 - ✅ **ECS Task Definitions** (1 tasks):
   - `webapp-group10-backend-task-definition` — Có tag: CostCenter=G10, Application=AIRagChatbot, Owner=hungqt, Environment=Production, Name=webapp-group10-backend-task-definition
