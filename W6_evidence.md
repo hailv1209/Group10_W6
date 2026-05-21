@@ -130,37 +130,51 @@ Tất cả tài nguyên có tính phí triển khai trong W6 được gắn tag 
 **Kiểm Chứng - Tất Cả Resource Được Gắn Tag:**
 
 - ✅ **Lambda Functions**:
-  - `webapp-group10-health-ui` — Tags: Owner=hungqt, Environment=Production, CostCenter=G10, Application=AIRagChatbot
-  - `webapp-group10-health` — Tags: Owner=hungqt, Environment=Production, CostCenter=G10, Application=AIRagChatbot
-  - `webapp-group10-lambda-stop` — Tags: Owner=hungqt, CostCenter=G10, Application=AIRagChatbot
-  - `webapp-group10-lambda-public-security-group-check` — Tags: Owner=hungqt, CostCenter=G10
+  - `webapp-group10-health-ui` — Tags: Owner=hungqt, Environment=Production, CostCenter=G10, Application=AIRagChatbot, Name=webapp-group10-lambda-health-ui, Environment=Production
+    
+    <img width="1740" height="540" alt="image" src="https://github.com/user-attachments/assets/379de332-5d30-4636-9594-2f61cae3a15c" />
 
-- ✅ **ECS Task Definitions** (3 tasks):
-  - `api-service`, `worker`, `consumer` — Tất cả có tag: CostCenter=G10, Application=AIRagChatbot, Owner=hungqt
+  - `webapp-group10-health` — Tags: Owner=hungqt, Environment=Production, CostCenter=G10, Application=AIRagChatbot, Name=webapp-group10-health, Environment=Production
+    
+ <img width="1709" height="522" alt="image" src="https://github.com/user-attachments/assets/d60663b2-7ef2-469e-8745-b8aa970bb6f2" />
+    
+  - `webapp-group10-lambda-stop` — Tags: Owner=hungqt, CostCenter=G10, Application=AIRagChatbot, Application=AIRagChatbot, Name=webapp-group10-lambda-stop, Environment=Production
+
+<img width="1717" height="503" alt="image" src="https://github.com/user-attachments/assets/d3c722bb-5fca-4be0-9129-a8687df9c0cc" />
+    
+  - `webapp-group10-lambda-public-security-group-check` — Tags: Owner=hungqt, CostCenter=G10, Application=AIRagChatbot, Name=webapp-group10-lambda-public-security-group-check, Environment=Production
+    
+    <img width="1708" height="504" alt="image" src="https://github.com/user-attachments/assets/e2bd7229-dc62-41a3-a789-5ed9f3f8cbdc" />
+
+
+- ✅ **ECS Task Definitions** (1 tasks):
+  - `webapp-group10-backend-task-definition` — Có tag: CostCenter=G10, Application=AIRagChatbot, Owner=hungqt, Environment=Production, Name=webapp-group10-backend-task-definition
+    
+    <img width="1092" height="727" alt="image" src="https://github.com/user-attachments/assets/663da072-efb5-4d7a-8a05-71a76ac6f2ac" />
 
 - ✅ **RDS Database**:
-  - `webapp-group10-database` — Tags: Owner=hungqt, Environment=Production, CostCenter=G10, Application=AIRagChatbot
+  - `webapp-group10-database` — Tags: Owner=hungqt, Environment=Production, CostCenter=G10, Application=AIRagChatbot, Name=webapp-group10-database
+ 
+    <img width="1104" height="696" alt="image" src="https://github.com/user-attachments/assets/73579a4b-156a-4318-8b78-42fc61f10acd" />
 
 - ✅ **Network Resources**:
   - VPC, Subnets, NAT Gateway, Security Groups — Tags: Owner=hungqt, CostCenter=G10, Application=AIRagChatbot, Environment=Production
+    <img width="746" height="602" alt="image" src="https://github.com/user-attachments/assets/3e62a996-3d5e-4705-9834-0b7a778d1d08" />
+    <img width="867" height="675" alt="image" src="https://github.com/user-attachments/assets/0fe59c70-787e-484e-95e4-e0f2d88c70dc" />
+    <img width="585" height="682" alt="image" src="https://github.com/user-attachments/assets/97bbe30a-36ea-4c61-92e5-2575b0ff4fdd" />
+    <img width="683" height="688" alt="image" src="https://github.com/user-attachments/assets/1521cb75-6661-4910-9b27-a4644657fc18" />
 
 - ✅ **Storage**:
-  - S3 Bucket, EFS — Tags: Owner=hungqt, CostCenter=G10, Application=AIRagChatbot
+  - S3 Bucket, EFS — Tags: Owner=hungqt, CostCenter=G10, Application=AIRagChatbot, Environment=Production
+    <img width="1423" height="654" alt="image" src="https://github.com/user-attachments/assets/d3730e47-bb3c-487c-96df-cc137992a96f" />
+    <img width="1182" height="685" alt="image" src="https://github.com/user-attachments/assets/7fb1cec1-961d-4e00-98cc-4b93b0b8f767" />
+
 
 **Cách Thực Hiện:**
 - Tag được áp dụng tại resource creation (CloudFormation template w6-v3-template)
 - Tag values khớp chính xác capitalization trong Cost Explorer filters
 - Monthly audit: Validate 100% billable resource coverage via Cost Explorer grouped by Application tag
 - Non-compliant resource: Auto-remediate via Lambda (tối ưu sẽ implement)
-
-**Ảnh Chụp Bằng Chứng:**
-
-```
-[CHÈN ẢNH CHỤP 1: AWS EC2 console — Instances tagged với cả 4 keys]
-[CHÈN ẢNH CHỤP 2: AWS Lambda console — Functions tagged với Owner=hungqt, CostCenter=G10, Application=AIRagChatbot]
-[CHÈN ẢNH CHỤP 3: AWS RDS console — Database tagged với Environment=Production, CostCenter=G10]
-[CHÈN ẢNH CHỤP 4: AWS S3 console — Bucket tagged với Application=AIRagChatbot, CostCenter=G10]
-```
 
 ---
 
