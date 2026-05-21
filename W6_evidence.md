@@ -700,32 +700,47 @@ resourcePath           | avg_latency | max_latency | request_count
 
 ### Thành Phần 1: Lambda Function (Detect & Auto-Remediate)
 
-**Tên Function:** `webapp-group10-health`  
-**Ngôn Ngữ:** Python 3.12
-**IAM Role:** `webapp-group10-lambda-health`
+**Function Name:** `webapp-group10-lambda-public-security-group-check`  
+**Language:** Python 3.12  
+**Memory:** 256 MB  
+**Timeout:** 60 seconds  
+**IAM Role:** `webapp-group10-lambda-public-security-group-check-role` (Least-privilege)  
+**Trigger:** EventBridge rule (CloudTrail API events) + Daily scan
+
 
 **IAM Role Policy (Least-Privilege):**
 
 ```json
 {
-  "Version": "2012-10-17",
-  "Id": "default",
-  "Statement": [
-    {
-      "Sid": "f9099024-89d5-5510-b728-8c1d6f376fcc",
-      "Effect": "Allow",
-      "Principal": {
-        "Service": "apigateway.amazonaws.com"
-      },
-      "Action": "lambda:InvokeFunction",
-      "Resource": "arn:aws:lambda:us-east-1:726411362669:function:webapp-group10-health",
-      "Condition": {
-        "ArnLike": {
-          "AWS:SourceArn": "arn:aws:execute-api:us-east-1:726411362669:sae933ejoa/*/GET/health"
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AllowSecurityGroupReadOnlyScan",
+            "Effect": "Allow",
+            "Action": "ec2:DescribeSecurityGroups",
+            "Resource": "*"
+        },
+        {
+            "Sid": "AllowLambdaCreateLogGroup",
+            "Effect": "Allow",
+            "Action": "logs:CreateLogGroup",
+            "Resource": "arn:aws:logs:us-east-1:726411362669:*"
+        },
+        {
+            "Sid": "AllowLambdaWriteLogs",
+            "Effect": "Allow",
+            "Action": [
+                "logs:CreateLogStream",
+                "logs:PutLogEvents"
+            ],
+            "Resource": "arn:aws:logs:us-east-1:726411362669:log-group:/aws/lambda/public_security_group_check:*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": "ec2:RevokeSecurityGroupIngress",
+            "Resource": "arn:aws:ec2:us-east-1:726411362669:security-group/*"
         }
-      }
-    }
-  ]
+    ]
 }
 ```
 
