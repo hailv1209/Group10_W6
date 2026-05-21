@@ -1282,7 +1282,7 @@ aws s3 cp document.pdf s3://w6-rag-documents/doc.pdf \
 
 ```
 [CHÈN ẢNH CHỤP 1: Trusted Advisor console > Cost Optimization hiển thị "Unattached Elastic IPs" finding với trạng thái trước]
-[CHÈN ẢNH CHỤP 2: Trusted Advisor console > Security hiển thị "Security Groups - Specific Ports Unrestricted" finding TRƯỚC]
+<img width="1552" height="727" alt="image" src="https://github.com/user-attachments/assets/bb2af0ad-39ac-4994-b934-52f79fe0284a" />
 [CHÈN ẢNH CHỤP 3: Cùng views SAU remediation hiển thị findings resolved]
 ```
 
