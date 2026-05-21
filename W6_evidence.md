@@ -1192,13 +1192,13 @@ Deploy Conformance Pack với **Operational Best Practices for Amazon S3**.
 
 Sau khi deploy, AWS Config evaluate nhiều S3 security rules liên quan trực tiếp tới production workload.
 
-<img width="1598" height="605" alt="Conformance Rules 1" src="https://github.com/user-attachments/assets/75af77c2-1b5b-45fc-a3e0-05a7f3b4f3e6" />
+<img width="1599" height="622" alt="image" src="https://github.com/user-attachments/assets/cff220cd-d1bb-4f04-b79b-ee4059e24632" />
 
 > Figure 10 — AWS Config evaluate các S3 security rules liên quan tới production workload.
 
 ---
 
-<img width="1598" height="337" alt="Conformance Rules 2" src="https://github.com/user-attachments/assets/ab0e8db3-f42f-4b4f-b4c7-bf4dd318cde6" />
+<img width="1614" height="351" alt="image" src="https://github.com/user-attachments/assets/ba10e9e5-b719-4e10-a65e-17d68e7f4681" />
 
 > Figure 11 — Compliance status của các S3 security controls trong Conformance Pack.
 
