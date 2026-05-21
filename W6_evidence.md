@@ -594,7 +594,7 @@ Threshold (Alert): >0 errors
 
 ### Thành Phần B: CloudWatch Alarm (OK hoặc ALARM State)
 
-**Tên Alarm:** `w6-lambda-error-alarm`
+**Tên Alarm:** `webapp-group10-backend-5xx-rate`
 
 **Cấu Hình Alarm:**
 
