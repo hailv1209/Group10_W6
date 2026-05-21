@@ -1095,9 +1095,7 @@ Nhóm đã revoke public SSH rule và chỉ giữ private/internal administrativ
 
 Sau remediation, Trusted Advisor không còn hiển thị security finding.
 
-```text
-[CHÈN ẢNH 4: Trusted Advisor verify finding resolved]
-```
+<img width="1902" height="166" alt="image" src="https://github.com/user-attachments/assets/b4044513-3809-4ef8-93f6-44c8d7cdc0fb" />
 
 > Figure 4 — Trusted Advisor không còn cảnh báo unrestricted SSH access.
 
@@ -1171,7 +1169,7 @@ Sau khi remediation:
 
 Deploy Conformance Pack với **Operational Best Practices for Amazon S3**.
 
-<img width="1576" height="297" alt="image" src="https://github.com/user-attachments/assets/561a1230-4f9d-4984-8f2a-d442293cb222" />
+<img width="1887" height="187" alt="image" src="https://github.com/user-attachments/assets/0d18814b-b77c-4a40-890e-a321cf4c50f1" />
 
 > Figure 9 — Deploy thành công Operational Best Practices for Amazon S3 Conformance Pack.
 
