@@ -1043,7 +1043,7 @@ def lambda_handler(event: dict[str, Any] | None, context: Any) -> dict[str, Any]
 
 ---
 
-# Bonus 1: Trusted Advisor Remediations (+0.25)
+# Bonus 1: Trusted Advisor Remediations 
 
 ## Trusted Advisor Findings Remediation
 
@@ -1163,7 +1163,7 @@ Sau khi remediation:
 
 ---
 
-# Bonus 2: Config Conformance Pack Reflection (+0.25)
+# Bonus 2: Config Conformance Pack Reflection 
 
 # Config Conformance Pack — Operational Best Practices for Amazon S3
 
@@ -1256,80 +1256,7 @@ Khi bật versioning, hệ thống có thể rollback object cũ nhanh chóng m�
 
 ---
 
-# Bonus 3: gp2 → gp3 Migration Analysis (+0.25)
-
-# EBS Optimization — gp2 to gp3 Migration
-
-## Migration Details
-
-| Volume                      | Old Type | New Type | Provisioned IOPS | Throughput | Estimated Savings           |
-| --------------------------- | -------- | -------- | ---------------- | ---------- | --------------------------- |
-| Backend/RDS workload volume | gp2      | gp3      | 3,000            | 125 MB/s   | ~20% storage cost reduction |
-
----
-
-## Evidence — Before Migration
-
-```text
-[CHÈN ẢNH 12: EBS volume đang sử dụng gp2]
-```
-
----
-
-## Migration Process
-
-Thực hiện modify EBS volume từ gp2 sang gp3 để tối ưu cost và tăng performance consistency cho AI RAG workload.
-
-```text
-[CHÈN ẢNH 13: Modify volume operation gp2 → gp3]
-```
-
----
-
-## Evidence — After Migration
-
-```text
-[CHÈN ẢNH 14: Volume sau migration hiển thị gp3]
-```
-
----
-
-## Tại Sao Chọn gp3
-
-Production AI RAG workload chủ yếu gồm:
-
-* Document ingestion
-* Vector indexing
-* Metadata queries
-* Inference API operations
-
-Các workload này yêu cầu latency ổn định hơn burst performance.
-
----
-
-## So sánh gp2 vs gp3
-
-| Tiêu Chí             | gp2                    | gp3             |
-| -------------------- | ---------------------- | --------------- |
-| Performance Model    | Burst-based            | Stable baseline |
-| Default IOPS         | Scale theo size        | 3,000 mặc định  |
-| Throughput Stability | Phụ thuộc burst credit | Ổn định         |
-| Cost                 | Cao hơn                | ~20% rẻ hơn     |
-
----
-
-# Kết Quả
-
-Migration sang gp3 giúp:
-
-* Giảm storage cost
-* Tăng performance consistency
-* Loại bỏ dependency vào burst credits
-* Phù hợp hơn với inference/database workloads
-
----
-
-# Bonus 4: Reserved Instance / Savings Plan Decision (+0.25)
+# Bonus 3: Reserved Instance / Savings Plan Decision 
 
 # Reserved Instance / Savings Plan Analysis
 
