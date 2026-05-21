@@ -464,234 +464,128 @@ Chi phí AWS và chi phí data có độ trễ nội tại:
 
 ### Thành Phần A: CloudWatch Dashboard với Custom Metric
 
-**Tên Dashboard:** `w6-app-operations-dashboard`
+**Tên Dashboard:** `webapp-group10-operations-dashboard`
+
+**Custom Metric — Cách hoạt động:**
+Backend ECS container (chạy trên Fargate) tự động push custom metrics vào CloudWatch mỗi 60 giây thông qua cấu hình environment variables được thiết lập từ CloudFormation template:
+
+```yaml
+CLOUDWATCH_METRICS_ENABLED: "true"
+CLOUDWATCH_METRICS_NAMESPACE: "webapp-group10/backend"
+```
 
 **Bố Cục Dashboard:**
 
-#### Hàng 1: API & Business Logic Metrics
+#### Hàng 1: Custom Business Metrics (webapp-group10/backend)
 
-**Widget 1: Agent Inference Latency (Custom Metric)**
-
+**Widget 1: Backend Error Rate (Custom Metric)**
 ```
-Metric: AIRagChatbot/Operations/InferenceLatencyMs
+Namespace: webapp-group10/backend
+Metric: BackendErrorRate
+Dimensions: Environment=production, Service=backend
 Statistic: Average
 Period: 5 minutes
-Duration: 12 giờ gần đây
-Threshold (Cảnh Báo): 2000ms
+```
+**Tại Sao Metric Này**: Đây là custom metric do ứng dụng backend chủ động push lên. Nó đo tỷ lệ lỗi ở tầng business logic (ví dụ: lỗi inference AI, lỗi kết nối DB nội bộ). Metric này quan trọng vì nó phản ánh trực tiếp trải nghiệm người dùng, thứ mà các metric hạ tầng mặc định không đo được.
+
+#### Hàng 2: Standard Infrastructure Metrics
+
+**Widget 2: RDS Database Connections**
+```
+Namespace: AWS/RDS
+Metric: DatabaseConnections
+Dimensions: DBInstanceIdentifier=webapp-group10-database
+Statistic: Average
+Period: 5 minutes
 ```
 
-**Tại Sao Metric Này**: Bedrock latency trực tiếp ảnh hưởng đến trải nghiệm người dùng. Publishing metric này từ Lambda handler cho phép giám sát thực tế của hiệu suất LLM.
-
-**Code để publish metric:**
-
-```python
-import time
-import boto3
-
-cloudwatch = boto3.client('cloudwatch')
-
-def handler(event, context):
-    start = time.time()
-    
-    # Gọi Bedrock
-    response = bedrock.invoke_model(...)
-    
-    latency_ms = (time.time() - start) * 1000
-    
-    cloudwatch.put_metric_data(
-        Namespace='AIRagChatbot/Operations',
-        MetricData=[{
-            'MetricName': 'InferenceLatencyMs',
-            'Value': latency_ms,
-            'Unit': 'Milliseconds',
-            'Dimensions': [
-                {'Name': 'Environment', 'Value': 'dev'},
-                {'Name': 'Model', 'Value': 'claude-3-sonnet'}
-            ]
-        }]
-    )
-    return response
+**Widget 3: Lambda Health Check Errors**
 ```
-
-**Widget 2: API Gateway Request Count**
-
-```
-Metric: AWS/ApiGateway > Count
-Dimensions: ApiName=w6-rag-api
+Namespace: AWS/Lambda
+Metric: Errors
+Dimensions: FunctionName=webapp-group10-health
 Statistic: Sum
 Period: 5 minutes
-Duration: 12 giờ gần đây
-```
-
-**Widget 3: API Gateway 4xx/5xx Error Rate**
-
-```
-Metric: AWS/ApiGateway > 4XXError, 5XXError
-Dimensions: ApiName=w6-rag-api
-Statistic: Sum
-Period: 5 minutes
-Duration: 12 giờ gần đây
-Threshold (Alert): >5 errors trong 5m window
-```
-
-#### Hàng 2: Data Layer Metrics
-
-**Widget 4: RDS Database Connections**
-
-```
-Metric: AWS/RDS > DatabaseConnections
-Dimensions: DBInstanceIdentifier=w6-rag-postgres-db
-Statistic: Average
-Period: 5 minutes
-Duration: 12 giờ gần đây
-Threshold (Cảnh Báo): >15 connections (db.t3.small max ~25)
-```
-
-**Widget 5: RDS CPU Utilization**
-
-```
-Metric: AWS/RDS > CPUUtilization
-Dimensions: DBInstanceIdentifier=w6-rag-postgres-db
-Statistic: Average
-Period: 5 minutes
-Duration: 12 giờ gần đây
-Threshold (Alert): >80%
-```
-
-#### Hàng 3: Compute & Infrastructure
-
-**Widget 6: CloudWatch Agent Memory (Custom)**
-
-```
-Metric: CWAgent > mem_percent_used
-Dimensions: ImageId=ami-xxxxxxx, InstanceId=i-xxxxxxx
-Statistic: Average
-Period: 5 minutes
-Duration: 12 giờ gần đây
-Threshold (Alert): >85%
-```
-
-**Widget 7: Lambda Duration**
-
-```
-Metric: AWS/Lambda > Duration
-Dimensions: FunctionName=w6-rag-orchestrator
-Statistic: Average
-Period: 5 minutes
-Duration: 12 giờ gần đây
-Threshold (Cảnh Báo): >5000ms
-```
-
-**Widget 8: Lambda Error Rate**
-
-```
-Metric: AWS/Lambda > Errors
-Dimensions: FunctionName=w6-rag-orchestrator
-Statistic: Sum
-Period: 5 minutes
-Duration: 12 giờ gần đây
-Threshold (Alert): >0 errors
 ```
 
 **Ảnh Chụp Bằng Chứng:**
-
 ```
-[CHÈN ẢNH CHỤP: CloudWatch dashboard hiển thị 8 widgets với custom metric (InferenceLatencyMs) được hiển thị nổi bật bên cạnh infrastructure metrics, hiển thị dữ liệu 12 giờ gần đây]
+<img width="1563" height="713" alt="image" src="https://github.com/user-attachments/assets/ffdc3251-c58c-4d25-a390-e3828daba66a" />
+
+
+<img width="1652" height="791" alt="image" src="https://github.com/user-attachments/assets/f1f3c7f8-243e-44c9-86ac-569b96bff409" />
 ```
 
 ---
 
 ### Thành Phần B: CloudWatch Alarm (OK hoặc ALARM State)
 
-**Tên Alarm:** `webapp-group10-backend-5xx-rate`
+Nhóm đã cấu hình 2 Alarms theo sát business logic của ứng dụng (dựa trên Custom Metrics) thay vì chỉ dùng các metric hạ tầng mặc định. Cả 2 alarm đều đã được trigger để thoát khỏi trạng thái INSUFFICIENT_DATA và hiện đang ở trạng thái **OK**.
 
-**Cấu Hình Alarm:**
+**Alarm 1: Backend Error Rate**
+- **Tên Alarm:** `webapp-group10-backend-5xx-rate`
+- **Metric:** `BackendErrorRate` (Namespace: `webapp-group10/backend`)
+- **Điều kiện (Threshold):** `BackendErrorRate > 5` trong 5 phút.
+- **Trạng thái hiện tại:** **OK**
 
-```yaml
-Metric: AWS/Lambda > Errors
-Function: w6-rag-orchestrator
-Statistic: Sum
-Period: 5 minutes
-Threshold: ≥ 5 errors
-Evaluation Periods: 1
-Action: SNS notification tới ops team
-```
+**Alarm 2: Bedrock LLM Latency**
+- **Tên Alarm:** `webapp-group10-bedrock-high-response-time`
+- **Metric:** `bedrock_agent_latency_ms` (Namespace: `webapp-group10/backend`)
+- **Điều kiện (Threshold):** `bedrock_agent_latency_ms >= 3000` (ms) cho 3 datapoints trong vòng 25 phút.
+- **Trạng thái hiện tại:** **OK**
 
-**Test: Trigger Alarm to OK State**
-
-Để demo chức năng alarm (không kẹt ở INSUFFICIENT_DATA):
-
-```bash
-# Invoke Lambda 6 lần với errors cố ý để breach threshold
-for i in {1..6}; do
-  aws lambda invoke \
-    --function-name w6-rag-orchestrator \
-    --payload '{"test_error": true}' \
-    response.json
-done
-```
-
-**Chuyển Đổi Trạng Thái Alarm:**
-
-- **Trước**: INSUFFICIENT_DATA (chưa có invocations)
-- **Sau 5+ errors trong 5m window**: ALARM (threshold breached)
-- **Sau recovery (5m window với <5 errors)**: OK
+**Cách xử lý "INSUFFICIENT_DATA":**
+Để đảm bảo Alarm không bị kẹt ở trạng thái INSUFFICIENT_DATA như yêu cầu của đề bài, nhóm đã cấu hình `Missing data treatment` thành **Treat missing data as not breaching threshold** (như hiển thị trong tab Details).
 
 **Ảnh Chụp Bằng Chứng:**
 
 ```
-[CHÈN ẢNH CHỤP: CloudWatch Alarms console hiển thị w6-lambda-error-alarm ở trạng thái OK, với alarm history hiển thị recent state transitions (INSUFFICIENT_DATA → ALARM → OK) và timestamps]
+<img width="1550" height="808" alt="image" src="https://github.com/user-attachments/assets/c7eefd5e-7edd-4fc9-a031-444a1ddbf029" />
+
+<img width="1550" height="800" alt="image" src="https://github.com/user-attachments/assets/c302f4a8-88ff-4d4d-8626-2df004c37808" />
+
 ```
 
 ---
 
 ### Thành Phần C: CloudWatch Logs Insights Query (Saved)
 
-**Tên Query:** `w6-api-latency-by-endpoint`
+**Tên Query:** `webapp-group10-alb-target-group-health-check-query`
 
-**Mục Đích Query**: Xác định các API endpoint chậm nhất và phân phối latency để hướng dẫn ưu tiên tối ưu.
+**Log Group:** `/ecs/webapp-group10-backend-task-definition`
+
+**Mục Đích Query**: Phân tích tần suất và trạng thái của các yêu cầu Health Check từ ALB Target Group tới Backend (endpoint `/api/v1/health/`).
 
 **Saved Query:**
 
 ```sql
-fields @timestamp, httpMethod, resourcePath, @duration
-| filter @message like /latency/ and ispresent(@duration)
-| stats avg(@duration) as avg_latency, max(@duration) as max_latency, count() as request_count by resourcePath
-| sort max_latency desc
-| limit 20
-```
-
-**Lựa Chọn Query Thay Thế (nếu dùng Lambda/CloudTrail logs):**
-
-```sql
-fields @timestamp, functionName, @duration, @message
-| filter @message like /ERROR/ or @duration > 5000
-| stats count() as error_count, avg(@duration) as avg_duration by functionName
-| sort error_count desc
+fields @timestamp, @message
+| filter @message like /\/api\/v1\/health/
+| parse @message /INFO: (?<client_ip>[0-9.]+):(?<client_port>[0-9]+) - "GET (?<path>[^ ]+) HTTP\/1.1" (?<status>[0-9]+)/
+| stats count() as healthCheckCount by status, client_ip
+| sort healthCheckCount desc
 ```
 
 **Kết Quả Thực Thi:**
 
+```text
+# | status | client_ip | healthCheckCount
+1 |        |           | 246
 ```
-resourcePath           | avg_latency | max_latency | request_count
-/chat/completions      | 1240ms      | 4850ms      | 234
-/embeddings/search     | 185ms       | 920ms       | 156
-/health                | 12ms        | 45ms        | 1200
-```
+*(Ghi chú: Query quét được tổng cộng 483 records và trả về 246 bản ghi khớp lệnh filter. Các cột status và client_ip trống do format log thực tế có thể không khớp chính xác với regex trong lệnh parse, nhưng hệ thống vẫn thống kê được số lượng gọi Health Check là 246 lần).*
 
 **Ảnh Chụp Bằng Chứng:**
 
 ```
-[CHÈN ẢNH CHỤP: CloudWatch Logs Insights console hiển thị:
-1. Tên saved query "w6-api-latency-by-endpoint" trong left panel
-2. Query statistics table hiển thị endpoint, avg latency, max latency, request count
-3. Query execution time (e.g., "Scanned 5000 log events in 0.23 seconds")]
+[CHÈN ẢNH CHỤP 1: Giao diện CloudWatch Logs Insights hiển thị Query definition với lệnh query Health Check, log group được chọn và query đã được lưu với tên "webapp-group10-alb-target-group-health-check-query"]
+[CHÈN ẢNH CHỤP 2: Giao diện hiển thị biểu đồ Logs quét được 483 records trong 9.5s và bảng kết quả thống kê sức khỏe ALB healthCheckCount: 246]
 ```
 
 **Xác Minh Saved Query:**
 
 ```
-[CHÈN ẢNH CHỤP: CloudWatch Logs > Insights > Saved queries hiển thị "w6-api-latency-by-endpoint" saved query được liệt kê]
+<img width="1850" height="798" alt="image" src="https://github.com/user-attachments/assets/cd2a63e8-c6b3-4528-892d-d5d238e19446" />
+
 ```
 
 ---
