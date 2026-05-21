@@ -1182,7 +1182,7 @@ Sau khi remediation:
 
 Deploy Conformance Pack với **Operational Best Practices for Amazon S3**.
 
-<img width="1465" height="716" alt="Conformance Pack Deploy" src="https://github.com/user-attachments/assets/18fef08d-91c5-4424-a0d5-96c9198a9f4e" />
+<img width="1576" height="297" alt="image" src="https://github.com/user-attachments/assets/561a1230-4f9d-4984-8f2a-d442293cb222" />
 
 > Figure 9 — Deploy thành công Operational Best Practices for Amazon S3 Conformance Pack.
 
