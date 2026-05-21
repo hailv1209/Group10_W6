@@ -539,7 +539,7 @@ Period: 5 minutes
 
 #### Hàng 2: Standard Infrastructure Metrics
 
-**Widget 2: RDS Database Connections**
+**Widget 2: Bedrock Latency**
 ```
 Metric = webapp-group10/backend bedrock_agent_latency_ms
 Environment  = production
@@ -563,7 +563,7 @@ Statistic = Average
 Unit = Count
 ```
 
-**Widget 3: Lambda Health Check Errors**
+**Widget 3: ECS Task Metrics**
 ```
 Metric = ECS MemoryUtilization
 ClusterName = webapp-group10-backend-cluster
