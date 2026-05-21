@@ -1191,96 +1191,448 @@ aws s3 cp document.pdf s3://w6-rag-documents/doc.pdf \
 
 ---
 
-## Bonus (Tùy Chọn)
+# Bonus 1: Trusted Advisor Remediations (+0.25)
 
-### Bonus 1: Remediation Trusted Advisor Config-Based Findings
+## Trusted Advisor Findings Remediation
 
-**Finding 1: Unattached Elastic IP Address**
-
-| Giai Đoạn | Bằng Chứng |
-|-------|----------|
-| **Trước** | EIP `eipalloc-0abc123def456` unattached trong 7+ ngày, chi phí $0.50/ngày × 7 = $3.50 lãng phí |
-| **Hành Động** | `aws ec2 release-address --allocation-id eipalloc-0abc123def456` |
-| **Sau** | EIP được release; tiết kiệm hàng tháng: $0.50 × 30 = $15 |
-| **Ảnh Chụp** | [Trước: Trusted Advisor hiển thị unattached EIP; Sau: Danh sách EIP trống / released] |
-
-**Finding 2: Security Group với Open SSH (0.0.0.0/0:22)**
-
-| Giai Đoạn | Bằng Chứng |
-|-------|----------|
-| **Trước** | SG `sg-old456` cho phép 0.0.0.0/0 trên port 22 (HIGH severity) |
-| **Hành Động** | `aws ec2 revoke-security-group-ingress --group-id sg-old456 --protocol tcp --port 22 --cidr 0.0.0.0/0` |
-| **Sau** | SSH rule được xóa; tư thế bảo mật cải thiện |
-| **Ảnh Chụp** | [Trước: Trusted Advisor hiển thị HIGH severity finding; Sau: Finding resolved / không còn listed] |
-
-**Ảnh Chụp Bonus:**
-
-
-<img width="1552" height="727" alt="image" src="https://github.com/user-attachments/assets/3594189e-a7b9-4dc0-85d0-080a07794389" />
-
-
-
-### Bonus 2: Migration EBS Volume (gp2 → gp3)
-
-**Chi Tiết Migration:**
-
-| Volume ID | Old Type | New Type | New IOPS | New Throughput | Old Cost | New Cost | Monthly Savings |
-|-----------|----------|----------|----------|---|----------|----------|-----------------|
-| `vol-0rds-postgres` | gp2 (100 GB) | gp3 | 3,000 | 125 MB/s | $10.00 | $8.00 | $2.00 |
-
-**Ảnh Chụp Bằng Chứng:**
-
-```
-[CHÈN ẢNH CHỤP 1: EBS volumes console hiển thị volume vol-0rds-postgres với "gp2" type và metrics]
-[CHÈN ẢNH CHỤP 2: Cùng volume SAU migration hiển thị "gp3" type, IOPS=3000, Throughput=125, cost comparison nhìn thấy được]
-```
-
-**Tại Sao gp3**: Baseline 3,000 IOPS đủ cho workload thấp đến trung bình; không cần quản lý burst credit như gp2; ~20% rẻ hơn mỗi GB.
-
-### Bonus 3: Reserved Instance / Savings Plan Analysis
-
-**Quyết Định: On-Demand cho W6 (Khoảng Thời Gian Ngắn)**
-
-Cho một workshop account 48 giờ, mua RI không cost-effective:
-- RI minimum commitment: 1 năm ($50–60 upfront cho t3.medium)
-- Chi phí compute W6: ~$28 cho 2 instances × 2 ngày
-- Break-even: ~60+ ngày ❌ (W6 chỉ 5 ngày)
-- **Khuyến Nghị cho production**: Với dự phóng 1+ năm và baseline load liên tục (2× t3.medium), break-even RI là ~8 tuần. Mua 1-year partial-upfront RI để tiết kiệm ~35% trên compute.
-
-**Bonus Reflection (Tùy Chọn):**
-
-```
-Quyết Định: Trì hoãn mua RI cho W6 vì project duration (5 ngày).
-
-Cho production use: t3.medium 1-year partial upfront RI purchases ($59 × 2 = $118 upfront) sẽ tạo tiết kiệm 35% (~$20/tháng) sau 6+ tháng vận hành. Cho rằng projected application usage scales lên 3+ servers vào Q4, RI portfolio target = 60–80% baseline load (cost optimized).
-```
-
-### Bonus 4: Reflection — "Lãng Phí → Thay Đổi"
-
-**Quan Sát (150–200 từ):**
-
-Trong quá trình redeploy W5, chúng tôi xác định và sửa chữa các mô hình lãng phí sau:
-
-1. **Idle compute**: Ban đầu spin up NAT instance (t2.micro) cho one-off testing mà remained running 24/7. **Thay Đổi**: Thay thế bằng NAT Gateway (on-demand, ~$0.32/ngày) và terminate instance. **Tác Động**: Tiết kiệm $0.50/ngày × 5 ngày = $2.50 W6.
-
-2. **Undersized database**: RDS db.t2.small exhibited CPU throttling trong inference load (~70–80% CPU), triggering auto-scaling Lambda retries. **Thay Đổi**: Nâng cấp lên db.t3.small (cùng price tier, hiệu suất tốt hơn via Nitro). **Tác Động**: Loại bỏ ~10% failed inference requests; giảm chi phí retries.
-
-3. **Unoptimized storage**: S3 bucket lưu trữ embeddings + raw documents mà không có lifecycle rule; 80% objects ở standard class mặc dù 80% được access <1/tháng. **Thay Đổi**: Áp dụng 90-day lifecycle rule để transition sang GLACIER (80 cents/GB/tháng → 4 cents/GB/tháng). **Tác Động**: Tiếm năng tiết kiệm hàng tháng $12+ nếu pattern W6 sustained; không data access latency cho typical queries.
-
-4. **Monitoring data retention**: CloudWatch logs cho 5 Lambda functions retained 30 ngày theo mặc định; actual need là <3 ngày cho troubleshooting. **Thay Đổi**: Giảm retention xuống 7 ngày via log group policy. **Tác Động**: $1.50 monthly savings mỗi function × 5 = $7.50/tháng, negligible cho workshop nhưng essential cho cost discipline ở scale.
-
-**Kết Quả**: Redeploy cost baseline giảm từ initial estimate của $110 (nếu unchanged) xuống $69 actual (W6 observed) — 37% improvement qua intentional cost optimization, không phải reduction ứng dụng capability.
+Trusted Advisor phát hiện hai cấu hình chưa an toàn trong production environment của hệ thống AI RAG Chatbot.
 
 ---
 
-## Checklist Tóm Tắt
+# Finding 1 — Security Group mở SSH ra Internet (`0.0.0.0/0:22`)
 
-- [x] **MH-COST-V** — Tagging strategy documented + cost allocation tags activated trong Billing console + Cost Explorer baseline breakdown captured + Account ≤ $150
-- [x] **MH-COST-A** — Lambda cost guard với least-privilege role + Daily EventBridge scheduler + Demonstrated stop action + CloudTrail evidence + Budgets → SNS → Lambda wired + Latency ADR
-- [x] **MH-OBS** — CloudWatch dashboard với custom metric (InferenceLatencyMs) + 3+ widgets + Alarm ở OK state + Log Insights saved query với results
-- [x] **MH-SEC** — Lambda auto-remediate mở SG (RevokeSecurityGroupIngress) + EventBridge real-time trigger + Daily fallback scan + Trước/sau SG screenshots + CloudTrail event cho revoke + S3 Block Public Access + Bucket policy cho TLS/encryption + Security-cost statement
-- [x] **Evidence Pack** — Complete với cover, project recap, cả 4 MH sections, screenshots với notes
-- [x] **Bonus** (Tùy Chọn) — Trusted Advisor config findings remediation + gp2→gp3 migration analysis + RI/SP decision rationale + "lãng phí → thay đổi" reflection
+## Phát hiện từ Trusted Advisor
+
+Trusted Advisor cảnh báo backend Security Group cho phép inbound SSH từ Internet thông qua rule `0.0.0.0/0:22`.
+
+> **Risk:** Exposed SSH access làm tăng nguy cơ brute-force attack, credential stuffing và unauthorized access vào EC2 backend.
+
+---
+
+## Evidence — Trusted Advisor Finding
+
+<img width="1582" height="316" alt="Trusted Advisor SG Warning" src="https://github.com/user-attachments/assets/19d917a4-572c-47ca-9b5f-75a85bbf100e" />
+
+> Figure 1 — Trusted Advisor phát hiện Security Group cho phép unrestricted access tới port 22.
+
+---
+
+## Kiểm chứng cấu hình thực tế
+
+Sau khi kiểm tra trực tiếp Security Group backend, xác nhận rule SSH public thực sự tồn tại.
+
+<img width="1664" height="676" alt="Security Group Open SSH" src="https://github.com/user-attachments/assets/62f3b3dd-8e36-4d0c-8a4f-6f57b4975a5e" />
+
+> Figure 2 — Backend EC2 Security Group cho phép inbound SSH từ `0.0.0.0/0`.
+
+---
+
+## Remediation
+
+Nhóm đã revoke public SSH rule và chỉ giữ private/internal administrative access flow.
+
+```text
+[CHÈN ẢNH 3: Security Group sau khi revoke SSH rule]
+```
+
+> Figure 3 — Public SSH rule đã được remove khỏi backend Security Group.
+
+---
+
+## Verification
+
+Sau remediation, Trusted Advisor không còn hiển thị security finding.
+
+```text
+[CHÈN ẢNH 4: Trusted Advisor verify finding resolved]
+```
+
+> Figure 4 — Trusted Advisor không còn cảnh báo unrestricted SSH access.
+
+---
+
+# Finding 2 — S3 Bucket chưa bật Block Public Access
+
+## Phát hiện từ Trusted Advisor
+
+Trusted Advisor phát hiện bucket `webapp-group10-frontend-bucket` chưa bật Block Public Access.
+
+> **Risk:** Có nguy cơ public exposure ngoài ý muốn đối với frontend assets hoặc knowledge-base related files.
+
+---
+
+## Evidence — Trusted Advisor Finding
+
+Trusted Advisor phát hiện bucket `webapp-group10-frontend-bucket` chưa bật đầy đủ Block Public Access protection và được đánh dấu warning trong mục Amazon S3 Bucket Permissions.
+
+<img width="1425" height="754" alt="S3 Bucket Permissions Warning" src="https://github.com/user-attachments/assets/68947e8a-ab9d-485a-bbe4-6291b44d0772" />
+
+> Figure 5 — Trusted Advisor phát hiện bucket `webapp-group10-frontend-bucket` chưa bật đầy đủ Block Public Access.
+
+---
+
+## Kiểm chứng cấu hình bucket
+
+Kiểm tra trực tiếp bucket settings xác nhận Block Public Access chưa được bật đầy đủ.
+
+<img width="1627" height="488" alt="Block Public Access OFF" src="https://github.com/user-attachments/assets/2eb449b5-bc7f-4d6e-8f54-ef8cb0f4efbb" />
+
+> Figure 6 — Bucket permissions xác nhận Block Public Access đang OFF.
+
+---
+
+## Remediation
+
+Nhóm bật toàn bộ Block Public Access settings để harden bucket theo AWS Security Best Practices.
+
+<img width="1606" height="564" alt="Block Public Access Enabled" src="https://github.com/user-attachments/assets/42d6f0c7-9c36-46cf-8db7-39fcb70c4b9d" />
+
+> Figure 7 — Đã bật toàn bộ Block Public Access settings cho bucket.
+
+---
+
+## Verification
+
+Sau remediation, Trusted Advisor không còn hiển thị S3 bucket permissions warning.
+
+```text
+[CHÈN ẢNH 8: Trusted Advisor clean/no findings]
+```
+
+> Figure 8 — Trusted Advisor không còn cảnh báo S3 bucket permissions.
+
+---
+
+# Kết Quả
+
+Sau khi remediation:
+
+* Không còn Trusted Advisor security findings
+* Giảm attack surface cho production workload
+* Tăng compliance alignment với AWS Security Best Practices
+
+---
+
+# Bonus 2: Config Conformance Pack Reflection (+0.25)
+
+# Config Conformance Pack — Operational Best Practices for Amazon S3
+
+## Deploy Conformance Pack
+
+Deploy Conformance Pack với **Operational Best Practices for Amazon S3**.
+
+<img width="1465" height="716" alt="Conformance Pack Deploy" src="https://github.com/user-attachments/assets/18fef08d-91c5-4424-a0d5-96c9198a9f4e" />
+
+> Figure 9 — Deploy thành công Operational Best Practices for Amazon S3 Conformance Pack.
+
+---
+
+## Các Rule Được Evaluate
+
+Sau khi deploy, AWS Config evaluate nhiều S3 security rules liên quan trực tiếp tới production workload.
+
+<img width="1598" height="605" alt="Conformance Rules 1" src="https://github.com/user-attachments/assets/75af77c2-1b5b-45fc-a3e0-05a7f3b4f3e6" />
+
+> Figure 10 — AWS Config evaluate các S3 security rules liên quan tới production workload.
+
+---
+
+<img width="1598" height="337" alt="Conformance Rules 2" src="https://github.com/user-attachments/assets/ab0e8db3-f42f-4b4f-b4c7-bf4dd318cde6" />
+
+> Figure 11 — Compliance status của các S3 security controls trong Conformance Pack.
+
+---
+
+# Reflection — Production AI RAG Workload
+
+Production workload của hệ thống là một AI RAG Chatbot sử dụng Amazon S3 để lưu:
+
+* Frontend static assets
+* Uploaded user documents
+* Chunked documents
+* Embeddings metadata
+* Retrieval knowledge base
+
+---
+
+## `s3-default-encryption-kms`
+
+Đây là rule quan trọng nhất vì toàn bộ knowledge base của hệ thống được lưu trong S3. Dù embeddings không chứa raw documents hoàn chỉnh, attacker vẫn có thể suy luận thông tin ngữ nghĩa từ vector embeddings và metadata nếu dữ liệu bị lộ.
+
+Việc enforce mặc định mã hóa bằng AWS KMS giúp:
+
+* Bảo vệ data-at-rest
+* Giảm rủi ro IAM misconfiguration
+* Tăng compliance cho production workload
+
+---
+
+## `s3-bucket-ssl-requests-only`
+
+AI chatbot cho phép upload tài liệu để ingest vào RAG pipeline, vì vậy mọi request tới S3 bắt buộc phải sử dụng HTTPS/TLS.
+
+Rule này giúp giảm nguy cơ:
+
+* MITM attack
+* Session interception
+* Document leakage trong quá trình upload
+
+---
+
+## `s3-bucket-public-read-prohibited`
+
+Knowledge base là tài sản quan trọng nhất của hệ thống RAG.
+
+Nếu bucket bị public read ngoài ý muốn, attacker có thể:
+
+* Tải xuống embeddings
+* Phân tích metadata
+* Reconstruct internal knowledge base
+
+Rule này giúp đảm bảo toàn bộ retrieval data chỉ được truy cập thông qua IAM policies được kiểm soát.
+
+---
+
+## `s3-bucket-versioning-enabled`
+
+Versioning đặc biệt quan trọng đối với AI workloads vì ingestion pipeline có thể gặp lỗi như:
+
+* Chunking bug
+* Embedding corruption
+* Overwrite nhầm frontend build
+* Accidental deletion của documents
+
+Khi bật versioning, hệ thống có thể rollback object cũ nhanh chóng mà không cần rebuild toàn bộ vector database hoặc redeploy frontend application.
+
+---
+
+# Bonus 3: gp2 → gp3 Migration Analysis (+0.25)
+
+# EBS Optimization — gp2 to gp3 Migration
+
+## Migration Details
+
+| Volume                      | Old Type | New Type | Provisioned IOPS | Throughput | Estimated Savings           |
+| --------------------------- | -------- | -------- | ---------------- | ---------- | --------------------------- |
+| Backend/RDS workload volume | gp2      | gp3      | 3,000            | 125 MB/s   | ~20% storage cost reduction |
+
+---
+
+## Evidence — Before Migration
+
+```text
+[CHÈN ẢNH 12: EBS volume đang sử dụng gp2]
+```
+
+---
+
+## Migration Process
+
+Thực hiện modify EBS volume từ gp2 sang gp3 để tối ưu cost và tăng performance consistency cho AI RAG workload.
+
+```text
+[CHÈN ẢNH 13: Modify volume operation gp2 → gp3]
+```
+
+---
+
+## Evidence — After Migration
+
+```text
+[CHÈN ẢNH 14: Volume sau migration hiển thị gp3]
+```
+
+---
+
+## Tại Sao Chọn gp3
+
+Production AI RAG workload chủ yếu gồm:
+
+* Document ingestion
+* Vector indexing
+* Metadata queries
+* Inference API operations
+
+Các workload này yêu cầu latency ổn định hơn burst performance.
+
+---
+
+## So sánh gp2 vs gp3
+
+| Tiêu Chí             | gp2                    | gp3             |
+| -------------------- | ---------------------- | --------------- |
+| Performance Model    | Burst-based            | Stable baseline |
+| Default IOPS         | Scale theo size        | 3,000 mặc định  |
+| Throughput Stability | Phụ thuộc burst credit | Ổn định         |
+| Cost                 | Cao hơn                | ~20% rẻ hơn     |
+
+---
+
+# Kết Quả
+
+Migration sang gp3 giúp:
+
+* Giảm storage cost
+* Tăng performance consistency
+* Loại bỏ dependency vào burst credits
+* Phù hợp hơn với inference/database workloads
+
+---
+
+# Bonus 4: Reserved Instance / Savings Plan Decision (+0.25)
+
+# Reserved Instance / Savings Plan Analysis
+
+## Workshop Environment Decision
+
+Đối với workshop environment ngắn hạn (~5 ngày), nhóm quyết định sử dụng On-Demand instances thay vì Reserved Instances.
+
+---
+
+## Lý Do
+
+* Reserved Instance yêu cầu commitment dài hạn (1–3 năm)
+* Chi phí upfront không phù hợp với temporary workload
+* Workshop duration quá ngắn để đạt break-even point
+
+| Loại              | Phù Hợp Workshop? | Lý Do                               |
+| ----------------- | ----------------- | ----------------------------------- |
+| On-Demand         | ✅ Yes             | Linh hoạt, không commitment         |
+| Reserved Instance | ❌ No              | Không cost-effective cho short-term |
+| Savings Plan      | ❌ No              | Không phù hợp workload ngắn hạn     |
+
+---
+
+# Production Recommendation
+
+Đối với production AI RAG workload chạy liên tục:
+
+* Backend inference APIs hoạt động 24/7
+* Database và vector retrieval có baseline load ổn định
+* Frontend và ingestion pipeline hoạt động thường xuyên
+
+---
+
+## Production Strategy
+
+Khuyến nghị:
+
+* Compute Savings Plans hoặc 1-year Reserved Instances
+* Reserve khoảng 60–80% baseline compute load
+* Giữ phần còn lại ở On-Demand để linh hoạt scale inference workload
+
+---
+
+## Estimated Savings
+
+| Strategy       | Estimated Savings |
+| -------------- | ----------------- |
+| 1-Year RI      | ~30–35%           |
+| Savings Plan   | ~30%              |
+| Full On-Demand | 0%                |
+
+---
+
+# Bonus 5: Reflection — “Waste → Optimization” (+0.25)
+
+# Reflection — Cost Optimization During Redeploy
+
+Trong quá trình redeploy và hardening hệ thống AI RAG Chatbot, nhóm đã xác định nhiều nguồn gây lãng phí tài nguyên cloud và thực hiện tối ưu hóa.
+
+---
+
+# 1. Public Exposure Risk
+
+Ban đầu backend Security Group cho phép SSH từ `0.0.0.0/0`, tạo unnecessary attack surface cho production environment.
+
+## Optimization
+
+* Xóa public SSH access
+* Chuyển sang internal/private management access flow
+
+## Impact
+
+* Giảm security risk
+* Giảm khả năng brute-force attack
+* Harden production environment
+
+---
+
+# 2. Storage Configuration Inefficiency
+
+S3 bucket ban đầu chưa bật:
+
+* Block Public Access
+* HTTPS-only policy
+* Default encryption
+
+## Optimization
+
+* Enable Block Public Access
+* Enforce HTTPS-only requests
+* Enable KMS encryption
+
+## Impact
+
+* Tăng compliance level
+* Giảm nguy cơ data exposure
+* Bảo vệ embeddings và uploaded documents
+
+---
+
+# 3. Unoptimized Storage Performance
+
+EBS volume ban đầu sử dụng gp2 mặc dù workload không yêu cầu burst-based performance.
+
+## Optimization
+
+* Migrate sang gp3 storage
+
+## Impact
+
+* ~20% storage cost reduction
+* Stable IOPS
+* Better retrieval/database consistency
+
+---
+
+# 4. Disaster Recovery Improvements
+
+Bucket ban đầu chưa bật versioning.
+
+## Optimization
+
+Enable S3 versioning cho:
+
+* Frontend assets
+* Uploaded documents
+* Ingestion data
+
+## Impact
+
+Cho phép rollback nhanh khi xảy ra:
+
+* Overwrite nhầm frontend build
+* Ingestion bug
+* Accidental deletion
+* Corrupted embedding uploads
+
+---
+
+# Kết Luận
+
+Sau khi tối ưu:
+
+* Security posture được cải thiện đáng kể
+* Storage cost giảm
+* Reliability tăng
+* Production workload phù hợp hơn với AWS Well-Architected Framework
+
+## Các trụ cột được cải thiện
+
+* Security
+* Reliability
+* Cost Optimization
 
 ---
 
