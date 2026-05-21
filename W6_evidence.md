@@ -1148,7 +1148,7 @@ Kiểm tra trực tiếp bucket settings xác nhận Block Public Access chưa �
 
 Nhóm bật toàn bộ Block Public Access settings để harden bucket theo AWS Security Best Practices.
 
-<img width="1606" height="564" alt="Block Public Access Enabled" src="https://github.com/user-attachments/assets/42d6f0c7-9c36-46cf-8db7-39fcb70c4b9d" />
+<img width="1630" height="582" alt="image" src="https://github.com/user-attachments/assets/2a952379-3364-45fd-9201-8e49d3c992e0" />
 
 > Figure 7 — Đã bật toàn bộ Block Public Access settings cho bucket.
 
@@ -1158,7 +1158,7 @@ Nhóm bật toàn bộ Block Public Access settings để harden bucket theo AWS
 
 Sau remediation, Trusted Advisor không còn hiển thị S3 bucket permissions warning.
 
-<img width="1576" height="297" alt="image" src="https://github.com/user-attachments/assets/4146189b-9f71-4ec2-b7d7-14957dd54983" />
+<img width="1672" height="723" alt="image" src="https://github.com/user-attachments/assets/120cce33-84f3-41cc-b357-f6a2d9dcfe2c" />
 
 > Figure 8 — Trusted Advisor không còn cảnh báo S3 bucket permissions.
 
