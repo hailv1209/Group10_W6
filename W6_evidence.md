@@ -20,10 +20,67 @@
 
 ## Tóm Tắt Dự Án
 
-**Tổng Quan Ứng Dụng:**
-- **Là gì**: Chatbot AI hội thoại do AWS Bedrock cung cấp, lấy thông tin từ RDS PostgreSQL (RAG), và điều phối bằng Lambda
-- **Lĩnh Vực Kinh Doanh**: Tư vấn sức khỏe/wellness — người dùng truy vấn cơ sở kiến thức về các chủ đề sức khỏe, hệ thống lấy dữ liệu liên quan từ tài liệu, mô hình Claude của Bedrock tạo phản hồi dựa trên bằng chứng
-- **Người Dùng Chính**: Bệnh nhân qua web/mobile, API backend qua API Gateway
+#### Tổng Quan Ứng Dụng
+- **Mô Tả Hệ Thống**: AIChat là hệ thống AI chatbot full-stack hỗ trợ hỏi đáp tài liệu nội bộ bằng cơ chế RAG (Retrieval-Augmented Generation)
+- **Chức Năng Chính**:
+  - Người dùng có thể trò chuyện với AI
+  - Upload tài liệu
+  - Tìm kiếm tri thức từ knowledge base
+- **AI Platform**: Hệ thống sử dụng Amazon Bedrock để tạo phản hồi AI có ngữ cảnh dựa trên dữ liệu doanh nghiệp
+
+#### Kiến Trúc Ứng Dụng
+- **Frontend Layer**:
+  - Frontend static website được host trên Amazon S3
+  - CloudFront được dùng để phân phối nội dung và giảm latency
+- **Backend Layer**:
+  - Backend FastAPI được triển khai trên Amazon ECS Fargate
+  - Application Load Balancer (ALB) thực hiện load balancing cho ECS services
+  - API Gateway được dùng cho API routing và health endpoints
+- **Edge & Performance**:
+  - CloudFront đóng vai trò edge layer để tăng hiệu năng truy cập và khả năng phân phối toàn cầu
+
+#### Lớp Dữ Liệu
+- **Amazon RDS PostgreSQL**:
+  - Lưu trữ dữ liệu ứng dụng và metadata
+- **Amazon S3**:
+  - Lưu frontend assets
+  - Lưu tài liệu người dùng
+  - Lưu dữ liệu RAG
+- **Amazon EFS**:
+  - Hỗ trợ shared filesystem cho container workloads
+
+#### Lớp AI và RAG
+- **Amazon Bedrock Knowledge Base**:
+  - Quản lý ingestion
+  - Retrieval
+  - Semantic search
+- **Embedding Pipeline**:
+  - Tài liệu được lưu trong Amazon S3
+  - Embedding được tạo bằng Titan Text Embeddings V2
+- **Vector Storage**:
+  - Vector embeddings được lưu trong Amazon S3 Vectors để phục vụ semantic retrieval
+
+#### Hạ Tầng Mạng và Triển Khai
+- **Kiến Trúc Mạng**:
+  - Hệ thống chạy trong single VPC multi-AZ architecture
+  - Kiến trúc subnet gồm:
+    - Public subnet
+    - Private subnet
+    - Database subnet
+- **Internet Access**:
+  - NAT Gateway cung cấp outbound internet access cho private resources
+
+#### Khả Năng Mở Rộng và High Availability
+- **Compute Scaling**:
+  - ECS Fargate cho phép backend auto scaling mà không cần quản lý server
+- **Self-Healing**:
+  - ALB health checks hỗ trợ tự động phát hiện và thay thế unhealthy services
+- **High Availability**:
+  - Multi-AZ đảm bảo database failover và tính sẵn sàng cao
+- **Global Performance**:
+  - CloudFront giúp tăng hiệu năng và khả năng phân phối toàn cầu
+- **Kiến Trúc Phân Tầng**:
+  - Cho phép mở rộng độc lập từng lớp compute, network, security và data
 
 **Quyết Định Kiến Trúc Chính (W1–W5):**
 - **Kiến Trúc 3 tầng**: API Gateway → Lambda → RDS + Bedrock
