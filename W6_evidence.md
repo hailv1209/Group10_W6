@@ -1462,23 +1462,7 @@ S3 bucket ban đầu chưa bật:
 
 ---
 
-# 3. Unoptimized Storage Performance
-
-EBS volume ban đầu sử dụng gp2 mặc dù workload không yêu cầu burst-based performance.
-
-## Optimization
-
-* Migrate sang gp3 storage
-
-## Impact
-
-* ~20% storage cost reduction
-* Stable IOPS
-* Better retrieval/database consistency
-
----
-
-# 4. Disaster Recovery Improvements
+# 3. Disaster Recovery Improvements
 
 Bucket ban đầu chưa bật versioning.
 
