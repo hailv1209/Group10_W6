@@ -1061,8 +1061,6 @@ def lambda_handler(event: dict[str, Any] | None, context: Any) -> dict[str, Any]
 
 ### Thành Phần 3: Demo Auto-Remediation (Trước/Sau + CloudTrail)
 
-**Kịch Bản Test: Tạo & Remediate Mở Security Group**
-
 **Bước 1: Tạo Security Group dễ bị tấn công cố ý**
 
 **Security Group Được Tạo:** `sg-06733ee8485675d35`  
