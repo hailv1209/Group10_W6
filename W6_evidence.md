@@ -119,17 +119,36 @@ EC2 và RDS là 2 nguyên nhân chi phí hàng đầu (~71% cộng lại). Đi�
 **Cấu Hình Budget:**
 
 | Cài Đặt | Giá Trị |
-|---------|-------|
-| **Loại Budget** | Lặp lại hàng ngày |
-| **Giới Hạn Số Tiền** | USD $150 |
-| **Ngưỡng Cảnh Báo** | 80% ($120 thực tế) |
+|---------|----------|
+| **Tên Budget** | `webapp-group10-budget-150` |
+| **Loại Budget** | Cost Budget |
+| **Chu Kỳ Budget** | Custom (20/05/2026 → 23/05/2026) |
+| **Giới Hạn Số Tiền** | USD $145 |
+| **Chi Phí Hiện Tại** | USD $11.565 |
+| **Forecasted Cost** | USD $11.623 |
+| **Trạng Thái** | HEALTHY |
+| **Ngưỡng Cảnh Báo** | 80% ngân sách (~$116) |
 | **Người Nhận Cảnh Báo** | SNS topic cho thông báo nhóm |
+
+**Cấu Hình Daily Budget Bổ Sung:**
+
+| Cài Đặt | Giá Trị |
+|---------|----------|
+| **Tên Budget** | `webapp-group10-daily-budget-100` |
+| **Loại Budget** | Daily Recurring Cost Budget |
+| **Giới Hạn Hàng Ngày** | USD $100 |
+| **Chi Phí Hiện Tại** | USD $11.565 |
+| **Trạng Thái** | HEALTHY |
+
+**Mục Đích:**
+- Theo dõi chi phí triển khai hệ thống theo thời gian thực
+- Gửi cảnh báo khi chi phí vượt ngưỡng cho phép
+- Hỗ trợ kiểm soát chi phí trong quá trình triển khai W6
 
 **Ảnh Chụp Bằng Chứng:**
 
-```
-[CHÈN ẢNH CHỤP: AWS Budgets console hiển thị daily recurring budget với giới hạn $150 và alert được cấu hình]
-```
+<img width="1709" height="315" alt="image" src="https://github.com/user-attachments/assets/be18bef3-e265-4a51-87b6-b7b12f4613f7" />
+
 
 ---
 
