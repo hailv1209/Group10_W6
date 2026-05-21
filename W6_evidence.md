@@ -51,7 +51,7 @@ Tất cả tài nguyên có tính phí triển khai trong W6 được gắn tag 
 | `Environment` | Tầng triển khai | `dev` (không bao giờ `Dev`, `DEV`) | `dev` | Lọc chi phí; resource non-dev không nên tồn tại trong workshop account |
 | `CostCenter` | Định danh nhóm cho phân bổ chi phí | Group ID ở định dạng `GN` | `G10` | Bắt buộc cho FinOps; cho phép so sánh chi phí giữa các nhóm |
 | `Application` | Tên workload (CHỮ HOA chính xác) | Tên ứng dụng | `AIRagChatbot` | Theo dõi Cost Driver; phải khớp với tên repo hoặc tên dịch vụ |
-| `Name` | Tên của resource được gắn tag | tên resource | `webapp-group10-frontend-bucket` | Dễ dàng phân biệt được các runtime đang chạy trong dịch vụ đó |
+| `Name` | Tên của resource được gắn tag | Tên resource | `webapp-group10-frontend-bucket` | Dễ dàng phân biệt được các runtime đang chạy trong dịch vụ đó |
 
 **Cách Thực Hiện**:
 - Tag PHẢI được áp dụng khi tạo resource cho EC2, RDS, Lambda, S3, API Gateway, EFS, ALB
@@ -61,7 +61,7 @@ Tất cả tài nguyên có tính phí triển khai trong W6 được gắn tag 
 
 ---
 
-### Thành Phần 2: Kích Hoạt Cost Allocation Tags
+### Thành Phần 2: Kích Hoạt Cost Allocation Tags (chờ đợi anh Nghĩa)
 
 **Trạng Thái: ĐÃ KÍCH HOẠT trong Billing Console**
 
