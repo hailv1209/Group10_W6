@@ -1310,7 +1310,7 @@ Khuyến nghị:
 
 ---
 
-# Bonus 5: Reflection — “Waste → Optimization” (+0.25)
+# Bonus 4: Reflection — “Waste → Optimization” 
 
 # Reflection — Cost Optimization During Redeploy
 
