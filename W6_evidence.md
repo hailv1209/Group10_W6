@@ -1065,93 +1065,30 @@ def lambda_handler(event: dict[str, Any] | None, context: Any) -> dict[str, Any]
 
 **Bước 1: Tạo Security Group dễ bị tấn công cố ý**
 
-```bash
-# Tạo SG với mở SSH (0.0.0.0/0:22)
-SG_ID=$(aws ec2 create-security-group \
-  --group-name w6-security-test-sg \
-  --description "Test SG cho security guard demo" \
-  --region us-east-1 \
-  --query 'GroupId' \
-  --output text)
-
-# Thêm ingress rule dễ bị tấn công
-aws ec2 authorize-security-group-ingress \
-  --group-id $SG_ID \
-  --protocol tcp \
-  --port 22 \
-  --cidr 0.0.0.0/0 \
-  --region us-east-1
-```
-
-**Security Group Được Tạo:** `sg-0abc123def456`  
+**Security Group Được Tạo:** `sg-06733ee8485675d35`  
 **Quy Tắc Dễ Bị Tấn Công:** SSH (port 22) từ 0.0.0.0/0
 
 **Ảnh Chụp Bằng Chứng 1 (Trước - Trạng Thái Không An Toàn):**
 
-```
-[CHÈN ẢNH CHỤP: AWS EC2 > Security Groups > sg-0abc123def456 hiển thị:
-- Inbound rule: Type=SSH, Protocol=TCP, Port=22, Source=0.0.0.0/0 (được highlight là không an toàn)]
-```
-
-**Bước 2: Trigger Lambda (thủ công hoặc chờ EventBridge)**
-
-```bash
-aws lambda invoke \
-  --function-name w6-security-auto-remediate \
-  --region us-east-1 \
-  response.json
-
-cat response.json
-```
-
-**Output Lambda:**
-```json
-{
-  "statusCode": 200,
-  "body": {
-    "timestamp": "2026-05-21T10:30:45.123456",
-    "remediated": [
-      {
-        "sg_id": "sg-0abc123def456",
-        "sg_name": "w6-security-test-sg",
-        "port": 22,
-        "action": "REVOKED"
-      }
-    ],
-    "total_fixed": 1
-  }
-}
-```
+<img width="1911" height="811" alt="image" src="https://github.com/user-attachments/assets/223438ec-c448-410f-bbd2-2b5ec119e511" />
 
 **Ảnh Chụp Bằng Chứng 2 (Sau - Trạng Thái Đã Remediate):**
 
-```
-[CHÈN ẢNH CHỤP: AWS EC2 > Security Groups > sg-0abc123def456 hiển thị:
-- Inbound rule cho SSH giờ ĐÃ BỊ XÓA / revoked
-- Không có quy tắc 0.0.0.0/0
-- Timestamp hiển thị remediation xảy ra sau ảnh chụp 1]
-```
+<img width="1911" height="811" alt="image" src="https://github.com/user-attachments/assets/9f4a455e-7ea9-4b7a-8966-8eadf96d5eda" />
 
-**Bước 3: Bằng Chứng CloudTrail**
+
+**Bước 2: Bằng Chứng CloudTrail**
 
 **API Call Remediation:**
 
 - **Event Name**: `RevokeSecurityGroupIngress`
-- **Event Time**: 21 tháng 5, 2026 lúc 10:30:47 UTC
-- **IAM Principal**: `arn:aws:iam::726411362669:role/w6-security-remediate-role`
-- **Security Group**: `sg-0abc123def456`
-- **Request Parameters**: `IpPermissions: [{IpProtocol: tcp, FromPort: 22, ToPort: 22, IpRanges: [{CidrIp: 0.0.0.0/0}]}]`
+- **Event Time**: 21 tháng 5, 2026 lúc 16:35:25 (UTC+07:00)
+- **Security Group**: `sg-06733ee8485675d35`
 
 **Ảnh Chụp Bằng Chứng 3 (CloudTrail Event):**
 
-```
-[CHÈN ẢNH CHỤP: CloudTrail console hiển thị RevokeSecurityGroupIngress event:
-- Event name rõ ràng nhìn thấy
-- IAM role (w6-security-remediate-role) nhìn thấy
-- Request parameters hiển thị port 22 và 0.0.0.0/0 CIDR
-- Event timestamp
-- Response elements hiển thị success]
-```
+<img width="1911" height="811" alt="image" src="https://github.com/user-attachments/assets/3af9e19f-e5f5-4665-817b-dc5941629060" />
+
 
 **Diễn Giải:**
 Ảnh chụp SG trước/sau demo chuyển đổi trạng thái từ dễ bị tấn công (SSH mở) → bảo mật (rule revoked). Event CloudTrail xác nhận action revoke được khởi tạo bởi execution role của Lambda (least-privilege), không phải can thiệp thủ công. Điều này hoàn thành flow self-healing security guard demonstrable.
