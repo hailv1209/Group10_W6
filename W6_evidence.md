@@ -1095,91 +1095,60 @@ def lambda_handler(event: dict[str, Any] | None, context: Any) -> dict[str, Any]
 
 ### Thành Phần 4: Preventive Control (Hỗ Trợ)
 
-**Selected Control: S3 Account-Level Block Public Access + Bucket Policy**
+**Selected Control: S3 Bucket Policy - Non-TLS Access**
 
-#### 4A: S3 Block Public Access (Account-Level)
+**Tên Bucket:** `webapp-group10-frontend-bucket`
 
-**Cấu Hình:**
+**Ảnh Chụp Bằng Chứng S3 Bucket Policy**
 
-```yaml
-Block Public Access Settings (Account):
-  BlockPublicAcls: True
-  IgnorePublicAcls: True
-  BlockPublicPolicy: True
-  RestrictPublicBuckets: True
-```
+<img width="1690" height="777" alt="image" src="https://github.com/user-attachments/assets/55d7fa41-ab7f-4e9c-a875-09c4675dd281" />
 
-**Mục Đích**: Ngăn chặn bất kỳ S3 bucket nào trong account bị công khai vô tình, ngay cả khi bucket policy bị cấu hình sai.
-
-**Ảnh Chụp Bằng Chứng:**
-
-```
-[CHÈN ẢNH CHỤP: AWS S3 console > Block Public Access settings (account level) hiển thị tất cả 4 toggles được bật]
-```
-
-#### 4B: Bucket Policy - Deny Unencrypted & Non-TLS Access
-
-**Tên Bucket:** `w6-rag-documents`
 
 **Bucket Policy:**
 
 ```json
 {
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "DenyUnencryptedObjectUploads",
-      "Effect": "Deny",
-      "Principal": "*",
-      "Action": "s3:PutObject",
-      "Resource": "arn:aws:s3:::w6-rag-documents/*",
-      "Condition": {
-        "StringNotEquals": {
-          "s3:x-amz-server-side-encryption": "AES256"
+    "Version": "2008-10-17",
+    "Id": "PolicyForCloudFrontPrivateContent",
+    "Statement": [
+        {
+            "Sid": "AllowCloudFrontServicePrincipal",
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "cloudfront.amazonaws.com"
+            },
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::webapp-group10-frontend-bucket/*",
+            "Condition": {
+                "ArnLike": {
+                    "AWS:SourceArn": "arn:aws:cloudfront::726411362669:distribution/E1CGABL2MCP0AG"
+                }
+            }
+        },
+        {
+            "Sid": "DenyNonTLSPutObject",
+            "Effect": "Deny",
+            "Principal": "*",
+            "Action": "s3:PutObject",
+            "Resource": "arn:aws:s3:::webapp-group10-frontend-bucket/*",
+            "Condition": {
+                "Bool": {
+                    "aws:SecureTransport": "false"
+                }
+            }
         }
-      }
-    },
-    {
-      "Sid": "DenyNonTLSRequests",
-      "Effect": "Deny",
-      "Principal": "*",
-      "Action": "s3:*",
-      "Resource": [
-        "arn:aws:s3:::w6-rag-documents",
-        "arn:aws:s3:::w6-rag-documents/*"
-      ],
-      "Condition": {
-        "Bool": {
-          "aws:SecureTransport": "false"
-        }
-      }
-    }
-  ]
+    ]
 }
 ```
 
 **Tác Động Của Policy:**
-1. Bất kỳ request `PutObject` nào mà không có header `x-amz-server-side-encryption: AES256` sẽ bị từ chối
-2. Bất kỳ request nào qua HTTP (non-TLS) sẽ bị từ chối — phải dùng HTTPS
+- Bất kỳ request nào qua HTTP (non-TLS) sẽ bị từ chối — phải dùng HTTPS
 
-**Ảnh Chụp Bằng Chứng:**
-
-```
-[CHÈN ẢNH CHỤP: AWS S3 > w6-rag-documents bucket > Permissions tab > Bucket Policy hiển thị deny statements cho unencrypted và non-TLS access]
-```
 
 **Test: Xác Minh Policy Enforcement**
 
-```bash
-# Cái này NÊN FAIL (không có encryption header)
-aws s3 cp document.pdf s3://w6-rag-documents/doc.pdf
-
-# Cái này NÊN SUCCEED (encryption được chỉ định)
-aws s3 cp document.pdf s3://w6-rag-documents/doc.pdf \
-  --sse AES256
-
-# Non-TLS attempt sẽ bị chặn ở transport layer
-```
+- Request HTTP bị deny <img width="1189" height="163" alt="image" src="https://github.com/user-attachments/assets/4e9e6312-d598-4490-b667-f7fe6fd67da8" />
+- Request HTTPs đc accept <img width="1192" height="196" alt="image" src="https://github.com/user-attachments/assets/9535360f-ac20-4de4-8b90-96453360090e" />
 
 ---
 
