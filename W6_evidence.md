@@ -1264,9 +1264,7 @@ Nhóm bật toàn bộ Block Public Access settings để harden bucket theo AWS
 
 Sau remediation, Trusted Advisor không còn hiển thị S3 bucket permissions warning.
 
-```text
-[CHÈN ẢNH 8: Trusted Advisor clean/no findings]
-```
+<img width="1576" height="297" alt="image" src="https://github.com/user-attachments/assets/4146189b-9f71-4ec2-b7d7-14957dd54983" />
 
 > Figure 8 — Trusted Advisor không còn cảnh báo S3 bucket permissions.
 
