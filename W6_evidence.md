@@ -1367,7 +1367,7 @@ Khi bật versioning, hệ thống có thể rollback object cũ nhanh chóng m�
 
 ## Workshop Environment Decision
 
-Đối với workshop environment ngắn hạn (~5 ngày), nhóm quyết định sử dụng On-Demand instances thay vì Reserved Instances.
+Đối với workshop environment ngắn hạn, nhóm quyết định sử dụng On-Demand instances thay vì Reserved Instances.
 
 ---
 
