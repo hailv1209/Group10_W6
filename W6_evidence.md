@@ -1244,7 +1244,7 @@ Trusted Advisor phát hiện bucket `webapp-group10-frontend-bucket` chưa bật
 
 Kiểm tra trực tiếp bucket settings xác nhận Block Public Access chưa được bật đầy đủ.
 
-<img width="1627" height="488" alt="Block Public Access OFF" src="https://github.com/user-attachments/assets/2eb449b5-bc7f-4d6e-8f54-ef8cb0f4efbb" />
+<img width="1624" height="522" alt="image" src="https://github.com/user-attachments/assets/eb3dd8fc-8ff1-4624-ab2e-0dd60a8a910d" />
 
 > Figure 6 — Bucket permissions xác nhận Block Public Access đang OFF.
 
