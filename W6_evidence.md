@@ -1024,62 +1024,8 @@ def lambda_handler(event, context):
 
 **Ảnh Chụp Bằng Chứng:**
 
-```
-[CHÈN ẢNH CHỤP: AWS Lambda console > w6-security-auto-remediate hiển thị function code, execution role, và recent invocations với timestamp]
-```
 <img width="1663" height="454" alt="image" src="https://github.com/user-attachments/assets/42606911-6a02-4148-ad1b-f864a9af6c07" />
 
-
----
-
-### Thành Phần 2: EventBridge Trigger (CloudTrail API Event)
-
-**Trigger 1: Phát Hiện Thực Tế**
-
-**Tên EventBridge Rule:** `w6-detect-insecure-sg-change`
-
-**Rule Pattern:**
-
-```json
-{
-  "source": ["aws.ec2"],
-  "detail-type": ["AWS API Call via CloudTrail"],
-  "detail": {
-    "eventName": ["AuthorizeSecurityGroupIngress"],
-    "requestParameters": {
-      "ipPermissions": {
-        "items": {
-          "ipRanges": {
-            "items": {
-              "cidrIp": ["0.0.0.0/0"]
-            }
-          }
-        }
-      }
-    }
-  }
-}
-```
-
-**Target:** Lambda function `w6-security-auto-remediate`
-
-**Trigger 2: Daily Fallback Scan**
-
-**EventBridge Scheduler Rule:**
-
-```yaml
-Name: w6-security-daily-scan
-Schedule: cron(0 2 * * ? *)  # 02:00 UTC hàng ngày
-Target: Lambda w6-security-auto-remediate
-```
-
-**Ảnh Chụp Bằng Chứng:**
-
-```
-[CHÈN ẢNH CHỤP: EventBridge > Rules hiển thị cả hai rules (w6-detect-insecure-sg-change và w6-security-daily-scan) với patterns và Lambda targets]
-```
-
----
 
 ### Thành Phần 3: Demo Auto-Remediation (Trước/Sau + CloudTrail)
 
