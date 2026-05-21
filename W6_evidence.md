@@ -8,12 +8,12 @@
 
 | Mục | Chi Tiết |
 |------|----------|
-| **ID Nhóm** | G10 |
+| **Nhóm** | G10 |
+| **Tên thành viên** | Lê Trần Tuấn Khanh, Trần Mạnh Trường, Trần Mạnh Cường, Nguyễn Đức Hảo, Lê Văn Hải, Phan Đức Huy, Lê Viết Quốc Hưng, Huỳnh Xuân Hậu, Nguyễn Thị Mến, Trần Quốc Hùng |
 | **Tên Dự Án** | AI RAG Chatbot |
-| **Repository** | [Chèn link repo] |
-| **Gói Bằng Chứng W5** | [Link tới W5_evidence.md] |
+| **Repository** | https://github.com/hailv1209/XBrain_Group10|
 | **Ngày Triển Khai** | 19 tháng 5, 2026 |
-| **AWS Account** | [Account ID] |
+| **AWS Account** | 726411362669 |
 | **Tổng Chi Phí (W6)** | USD ~[Chi phí] (≤ $150) |
 
 ---
