@@ -169,42 +169,57 @@ EC2 và RDS là 2 nguyên nhân chi phí hàng đầu (~71% cộng lại). Đi�
 
 ## MH-COST-A — Kiểm Soát & Hành Động Chi Phí (Cost Guard Tự Động)
 
-### Thành Phần A: Lambda Function (Dừng Compute Không Có Tag)
+### Thành Phần 1: Lambda Function (Dừng Compute Không Có Tag)
 
-**Tên Function:** `w6-cost-guard-scheduler`  
-**Ngôn Ngữ:** Python 3.11  
-**IAM Role:** `w6-cost-guard-execution-role` (Least-privilege)  
-**Trigger:** EventBridge Scheduler (hàng ngày lúc 06:00 UTC) + AWS Budgets → SNS
+**Tên Function:** `webapp-group10-lambda-stop`  
+**Ngôn Ngữ:** Python 3.12  
+**IAM Role:** `webapp-group10-lambda-stop-role`  
+**Trigger:** EventBridge Scheduler (hàng ngày lúc 00:00 theo múi giờ `Asia/Saigon`) + AWS Budgets → SNS
 
-**IAM Role Policy (Least-Privilege):**
+**Mô tả ngắn:**
+Lambda này quét các tài nguyên `RDS DB instance` và `ECS service`, bỏ qua resource có `Environment=Production` hoặc `Environment=Development` kèm `Keep=True`, sau đó dừng RDS hoặc scale ECS service về `desiredCount=0`.
+
+**IAM Role Policy Snapshot (Current State):**
 
 ```json
 {
   "Version": "2012-10-17",
   "Statement": [
     {
+      "Sid": "VisualEditor0",
       "Effect": "Allow",
       "Action": [
-        "ec2:DescribeInstances",
-        "ec2:StopInstances",
-        "rds:DescribeDBInstances",
-        "rds:StopDBInstance"
-      ],
-      "Resource": "*",
-      "Condition": {
-        "StringNotEquals": {
-          "aws:RequestedRegion": "eu-west-1"
-        }
-      }
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
-        "logs:CreateLogGroup",
+        "ecs:UpdateService",
         "logs:CreateLogStream",
+        "rds:StopDBInstance",
+        "logs:CreateLogGroup",
         "logs:PutLogEvents"
       ],
-      "Resource": "arn:aws:logs:*:*:*"
+      "Resource": [
+        "arn:aws:rds:us-east-1:726411362669:db:*",
+        "arn:aws:ecs:us-east-1:726411362669:service/*/*",
+        "arn:aws:logs:us-east-1:726411362669:log-group:/aws/lambda/stop:*"
+      ]
+    },
+    {
+      "Sid": "VisualEditor1",
+      "Effect": "Allow",
+      "Action": [
+        "ecs:ListServices",
+        "ecs:ListTagsForResource",
+        "rds:ListTagsForResource",
+        "rds:DescribeDBInstances",
+        "ecs:DescribeServices",
+        "rds:DescribeDBClusters",
+        "ecs:ListClusters"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "VisualEditor2",
+      "Effect": "Allow",
+      "Action": "rds:StopDBCluster",
+      "Resource": "arn:aws:rds:us-east-1:726411362669:cluster:*"
     }
   ]
 }
@@ -216,247 +231,281 @@ EC2 và RDS là 2 nguyên nhân chi phí hàng đầu (~71% cộng lại). Đi�
 import boto3
 import json
 from datetime import datetime
+from typing import Any
 
-ec2 = boto3.client('ec2')
+ecs = boto3.client('ecs')
 rds = boto3.client('rds')
-logs = boto3.client('logs')
+
+
+KEEP_TAG_TRUE_VALUES = {"1", "true", "yes", "y", "on"}
+KEEP_TAG_KEY = "keep"
+ENVIRONMENT_TAG_KEY = "environment"
+PRODUCTION_ENVIRONMENT_VALUE = "production"
+DEVELOPMENT_ENVIRONMENT_VALUE = "development"
+
+
+def _tag_map(tags: list[dict[str, str]]) -> dict[str, str]:
+    mapped: dict[str, str] = {}
+    for tag in tags:
+        key = tag.get("Key") or tag.get("key")
+        value = tag.get("Value") or tag.get("value") or ""
+        if key:
+            mapped[str(key).strip().lower()] = str(value).strip()
+    return mapped
+
+
+def _is_keep_protected(tags: dict[str, str]) -> bool:
+    return tags.get(KEEP_TAG_KEY, "").strip().lower() in KEEP_TAG_TRUE_VALUES
+
+
+def _environment_value(tags: dict[str, str]) -> str:
+    return tags.get(ENVIRONMENT_TAG_KEY, "").strip().lower()
+
+
+def _eligible(tags: dict[str, str]) -> tuple[bool, str]:
+    environment = _environment_value(tags)
+    if environment == PRODUCTION_ENVIRONMENT_VALUE:
+        return False, "Environment=Production"
+    if environment == DEVELOPMENT_ENVIRONMENT_VALUE and _is_keep_protected(tags):
+        return False, "Environment=Development and Keep=True"
+    return True, "eligible"
+
+
+def _rds_tags(arn: str) -> dict[str, str]:
+    response = rds.list_tags_for_resource(ResourceName=arn)
+    return _tag_map(response.get("TagList", []))
+
+
+def _ecs_tags(arn: str) -> dict[str, str]:
+    response = ecs.list_tags_for_resource(resourceArn=arn)
+    return _tag_map(response.get("tags", []))
+
+
+def _describe_ecs_services(cluster_arn: str, service_arns: list[str]) -> list[dict[str, Any]]:
+    services: list[dict[str, Any]] = []
+    for index in range(0, len(service_arns), 10):
+        batch = service_arns[index:index + 10]
+        response = ecs.describe_services(cluster=cluster_arn, services=batch)
+        services.extend(response.get("services", []))
+    return services
+
 
 def lambda_handler(event, context):
     """
-    Cost guard hàng ngày: dừng EC2 và RDS instances không được tag với keep=true
+    Cost guard: Dừng RDS và ECS services không có tag keep=true
+    Hỗ trợ kích hoạt bởi EventBridge Scheduler (lịch hàng ngày) và AWS Budgets (qua SNS)
     """
-    
-    logger_name = "/aws/lambda/w6-cost-guard-scheduler"
-    
-    # Tạo log stream nếu chưa có
-    try:
-        logs.create_log_stream(logGroupName=logger_name, logStreamName=datetime.now().strftime('%Y-%m-%d'))
-    except logs.exceptions.ResourceAlreadyExistsException:
-        pass
-    
+    print(f"Nhận sự kiện kích hoạt: {json.dumps(event)}")
+
+    # 1. Kiểm tra xem có phải được kích hoạt bởi AWS Budgets qua SNS không
+    is_sns_trigger = False
+    if event and 'Records' in event:
+        record = event['Records'][0]
+        if record.get('EventSource') == 'aws:sns' or record.get('eventSource') == 'aws:sns':
+            is_sns_trigger = True
+            try:
+                sns_message = json.loads(record['Sns']['Message'])
+                budget_name = sns_message.get('BudgetName', 'Unknown')
+                alert_type = sns_message.get('AlertType', 'Unknown')
+                print(f"[ALERT] Phát hiện cảnh báo ngân sách từ SNS! Budget: {budget_name}, Type: {alert_type}")
+            except Exception as e:
+                print(f"Lỗi phân tích tin nhắn SNS: {str(e)}")
+
     stopped_resources = {
-        "ec2": [],
         "rds": []
     }
-    
-    # 1. Dừng EC2 instances mà không có tag keep=true
-    try:
-        response = ec2.describe_instances(
-            Filters=[
-                {'Name': 'instance-state-name', 'Values': ['running']}
-            ]
-        )
-        
-        for reservation in response['Reservations']:
-            for instance in reservation['Instances']:
-                instance_id = instance['InstanceId']
-                tags = {tag['Key']: tag['Value'] for tag in instance.get('Tags', [])}
-                
-                # Kiểm tra xem tag keep=true có tồn tại không (case-sensitive)
-                should_keep = tags.get('keep', '').lower() == 'true'
-                
-                if not should_keep:
-                    ec2.stop_instances(InstanceIds=[instance_id])
-                    stopped_resources['ec2'].append(instance_id)
-                    print(f"Đã dừng EC2 instance: {instance_id}")
-    
-    except Exception as e:
-        print(f"Lỗi xử lý EC2 instances: {str(e)}")
-    
-    # 2. Dừng RDS instances mà không có tag keep=true
+
+    # 2. Dừng RDS instances đang hoạt động mà không có tag keep=true
     try:
         response = rds.describe_db_instances()
-        
         for db_instance in response['DBInstances']:
             db_id = db_instance['DBInstanceIdentifier']
-            
-            # Lấy tags từ ARN
-            arn = db_instance['DBInstanceArn']
-            tags_response = rds.list_tags_for_resource(ResourceName=arn)
-            tags = {tag['Key']: tag['Value'] for tag in tags_response['TagList']}
-            
-            should_keep = tags.get('keep', '').lower() == 'true'
-            
-            if not should_keep and db_instance['DBInstanceStatus'] == 'available':
+
+            tags = _rds_tags(db_instance["DBInstanceArn"])
+            eligible, reason = _eligible(tags)
+            if not eligible:
+                print(f"Skip RDS {db_id}: {reason}")
+                continue
+
+            if db_instance["DBInstanceStatus"] == "available":
                 rds.stop_db_instance(DBInstanceIdentifier=db_id)
                 stopped_resources['rds'].append(db_id)
                 print(f"Đã dừng RDS instance: {db_id}")
-    
+
     except Exception as e:
         print(f"Lỗi xử lý RDS instances: {str(e)}")
-    
+
+    # 3. Dừng ECS services có desiredCount > 0 và không được bảo vệ bởi tag
+    try:
+        clusters = ecs.list_clusters().get("clusterArns", [])
+        for cluster_arn in clusters:
+            service_arns = []
+            paginator = ecs.get_paginator("list_services")
+            for page in paginator.paginate(cluster=cluster_arn):
+                service_arns.extend(page.get("serviceArns", []))
+
+            for service in _describe_ecs_services(cluster_arn, service_arns):
+                service_arn = service["serviceArn"]
+                service_name = service["serviceName"]
+                desired_count = int(service.get("desiredCount", 0))
+                tags = _ecs_tags(service_arn)
+                eligible, reason = _eligible(tags)
+                if not eligible:
+                    print(f"Skip ECS {service_name}: {reason}")
+                    continue
+                if desired_count > 0:
+                    ecs.update_service(cluster=cluster_arn, service=service_name, desiredCount=0)
+                    stopped_resources.setdefault("ecs", []).append(service_name)
+                    print(f"Đã scale ECS service về 0: {service_name}")
+    except Exception as e:
+        print(f"Lỗi xử lý ECS services: {str(e)}")
+
+    trigger_source = "SNS Budgets Alert" if is_sns_trigger else "EventBridge Scheduler"
+    message = f"Thực thi cost guard hoàn thành (Kích hoạt bởi: {trigger_source})"
+    print(message)
+
     return {
         'statusCode': 200,
         'body': json.dumps({
-            'message': 'Thực thi cost guard hoàn thành',
+            'message': message,
             'timestamp': datetime.now().isoformat(),
             'stopped_resources': stopped_resources
-        })
+        }, ensure_ascii=False)
     }
 ```
 
 **Ảnh Chụp Bằng Chứng:**
+- Lambda > Code tab
+![Lambda Code Tab](./public/lambda-code.png)
 
-```
-[CHÈN ẢNH CHỤP: AWS Lambda console > w6-cost-guard-scheduler function hiển thị code, execution role, và recent invocations]
-```
+- Lambda > Configuration > Permissions
+![Lambda Permissions](./public/lambda-permission.png)
 
----
+- IAM console > Policy JSON / Role permissions
+![IAM Policy JSON](./public/iam-policy.png)
 
-### Thành Phần B: Trigger Hàng Ngày EventBridge Scheduler
+
+### Thành Phần 2: Trigger Hàng Ngày EventBridge Scheduler
+
+**Mô tả ngắn:**
+EventBridge Scheduler được cấu hình để tự động kích hoạt Lambda Cost Guard mỗi ngày theo múi giờ `Asia/Saigon`, bảo đảm các tài nguyên dev được kiểm tra định kỳ mà không cần thao tác thủ công.
 
 **Cấu Hình Scheduler:**
 
 | Cài Đặt | Giá Trị |
 |---------|-------|
-| **Tên** | `w6-cost-guard-daily-trigger` |
-| **Schedule** | `cron(0 6 * * ? *)` (hàng ngày 06:00 UTC) |
-| **Target** | Lambda: `w6-cost-guard-scheduler` |
-| **Timezone** | UTC |
+| **Tên** | `webapp-group10-invoke-lambda-stop` |
+| **Status** | `Enabled` |
+| **Description** | `Invoke daily` |
+| **Schedule** | `cron(0 0 * * ? *)` (hàng ngày lúc 00:00) |
+| **Timezone** | `Asia/Saigon` |
+| **Target** | Lambda Cost Guard function |
 
 **Ảnh Chụp Bằng Chứng:**
+- EventBridge Scheduler > Schedule details
+![EventBridge Scheduler](./public/cost-scheduler.png)
 
-```
-[CHÈN ẢNH CHỤP: EventBridge > Schedules hiển thị w6-cost-guard-daily-trigger với cron expression và Lambda target]
-```
-
----
-
-### Thành Phần C: Demo Hành Động Dừng (Trước/Sau + CloudTrail)
-
-**Kịch Bản Test: Dừng EC2 Instance Không Có Tag**
-
-**Bước 1: Tạo test instance KHÔNG CÓ tag keep=true**
-
-```bash
-aws ec2 run-instances \
-  --image-id ami-0c55b159cbfafe1f0 \
-  --instance-type t3.micro \
-  --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=cost-guard-test},{Key=Environment,Value=dev},{Key=CostCenter,Value=G10}]' \
-  --region us-east-1
-```
-
-**Instance Được Tạo:** `i-0abc123def456` (Trạng Thái: running, không có tag `keep=true`)
-
-**Ảnh Chụp Bằng Chứng 1 (Trước):**
-
-```
-[CHÈN ẢNH CHỤP: AWS EC2 console hiển thị instance i-0abc123def456 ở trạng thái "running" với tags (Name, Environment, CostCenter) nhưng KHÔNG CÓ tag keep=true]
-```
-
-**Bước 2: Trigger Lambda thủ công (hoặc chờ scheduler)**
-
-```bash
-aws lambda invoke \
-  --function-name w6-cost-guard-scheduler \
-  --region us-east-1 \
-  response.json
-```
-
-**Output Lambda:**
-```
-Đã dừng EC2 instance: i-0abc123def456
-```
-
-**Ảnh Chụp Bằng Chứng 2 (Sau):**
-
-```
-[CHÈN ẢNH CHỤP: AWS EC2 console hiển thị instance i-0abc123def456 giờ ở trạng thái "stopped", với timestamp sau khi Lambda invoke]
-```
-
-**Bước 3: Bằng Chứng CloudTrail**
-
-**Chi Tiết Event:**
-- **Event Name**: `StopInstances`
-- **Source IP**: Lambda execution role
-- **Instance ID**: `i-0abc123def456`
-- **Event Time**: 21 tháng 5, 2026 lúc 06:05:32 UTC
-- **IAM Principal**: `arn:aws:iam::726411362669:role/w6-cost-guard-execution-role`
-
-**Ảnh Chụp Bằng Chứng 3 (CloudTrail):**
-
-```
-[CHÈN ẢNH CHỤP: CloudTrail console hiển thị StopInstances event cho i-0abc123def456, với IAM role, timestamp, và request parameters nhìn thấy được]
-```
-
-**Diễn Giải:**
-Ảnh chụp trước/sau hiển thị chuyển đổi trạng thái instance từ running → stopped. Event CloudTrail xác nhận hành động được khởi tạo bởi execution role của Lambda (least-privilege), không phải can thiệp thủ công. Điều này hoàn thành luồng cost guard demonstrable.
+- EventBridge Scheduler > Target
+![EventBridge Scheduler Target](./public/scheduler-target.png)
 
 ---
 
-### Thành Phần D: Budgets → SNS → Lambda Integration + Latency ADR Chi Phí
+### Thành Phần 3: Demo Hành Động Dừng (Trước/Sau + CloudTrail)
 
-**Cấu Hình AWS Budgets:**
+**Mô tả ngắn:**
+Để chứng minh hành động tự động thực sự xảy ra, nhóm sử dụng một `RDS DB instance` không được bảo vệ bởi tag `Keep=True`. Lambda Cost Guard được kích hoạt thủ công để kiểm thử ngay trong workshop, sau đó trạng thái tài nguyên và CloudTrail được đối chiếu để xác nhận hành động `StopDBInstance`.
+
+**Kịch Bản Test: Dừng RDS DB Instance Không Có Tag `Keep=True`**
+
+**Bước 1: Xác nhận trạng thái trước khi chạy Lambda**
+- Chọn một `RDS DB instance` đang ở trạng thái `Available`.
+- Resource này không có tag `Keep=True`, nên đủ điều kiện bị dừng bởi Cost Guard.
+![RDS No Keep Tag](./public/rds-no-tag.png)
+
+**Ảnh Chụp Bằng Chứng:**
+- DB Instance trước khi chạy Lambda
+![RDS Before Stop](./public/rds-before.png)
+
+**Bước 2: Kích hoạt Lambda Cost Guard**
+- Chạy thủ công từ `AWS Console > Lambda > webapp-group10-lambda-stop > Test`
+
+**Kết quả mong đợi:**
+Lambda ghi log hành động dừng DB instance và trả về kết quả thực thi ngay trong Lambda console.
+
+**Ảnh Chụp Bằng Chứng:**
+![Lambda Function Logs](./public/funtionc-log.png)
+
+**Bước 3: Xác nhận trạng thái sau khi chạy Lambda**
+- Sau khi Lambda chạy, DB instance chuyển từ `Available` sang trạng thái dừng.
+
+**Ảnh Chụp Bằng Chứng:**
+![RDS After Stop](./public/rds-after.png)
+
+**Bước 4: Xác nhận bằng CloudTrail**
+- Kiểm tra `CloudTrail Event history` với `Event name = StopDBInstance`.
+- Đối chiếu `Event time`, `User identity` và `Request parameters` để xác nhận hành động được thực hiện bởi execution role của Lambda.
+
+**Ảnh Chụp Bằng Chứng:**
+![CloudTrail Stop Event](./public/cloudtrail-stopinstance.png)
+
+---
+
+### Thành Phần 4: Kết nối Budget -> SNS -> Lambda & Latency ADR Chi Phí
+
+**Mô tả ngắn:**
+Để bổ sung nhánh kích hoạt theo chi phí, nhóm cấu hình `AWS Budget` gửi cảnh báo tới `SNS Topic`, sau đó SNS kích hoạt chính Lambda Cost Guard. Do dữ liệu chi phí AWS có độ trễ, nhóm kiểm thử chuỗi này bằng cách publish test message thủ công vào SNS topic.
+
+**Cấu HÌnh AWS Budgets:**
 
 ```yaml
-Budget Name: w6-daily-cost-limit
-Budget Type: Recurring daily
-Amount: USD $150
-Alert Threshold: 80% ($120)
-Alert Recipient: SNS topic arn:aws:sns:us-east-1:726411362669:w6-cost-alerts
+Budget Name: webapp-group10-daily-budget-100
+Budget Type: Cost Budget	
+Amount: USD $100
+Alert Threshold: 95% ($95)
+Alert Recipient: SNS topic arn:aws:sns:us-east-1:726411362669:webapp-group10-daily-budget-100-notification
 ```
 
-**Cấu Hình SNS Topic:**
+**Cấu HÌnh SNS Topic:**
 
 ```
-Topic Name: w6-cost-alerts
-Subscription: Lambda target w6-cost-guard-scheduler
-Subscription protocol: AWS Lambda
+Topic Name: webapp-group10-daily-budget-100-notification
+Subscription: Lambda target webapp-group10-lambda-stop
+Subscription protocol: AWS LAMBDA
 ```
 
-**Lambda SNS Handler Code Addition:**
-
-```python
-def handle_budgets_alert(sns_event, context):
-    """
-    Xử lý AWS Budgets threshold alert via SNS
-    Nếu chi phí vượt 80% daily budget, trigger cost guard ngay lập tức
-    """
-    message = json.loads(sns_event['Records'][0]['Sns']['Message'])
-    
-    if 'BudgetName' in message and message['BudgetName'] == 'w6-daily-cost-limit':
-        print(f"Cost alert nhận được: {message['BudgetLimit']}")
-        # Trigger cost guard ngay thay vì đợi scheduler
-        lambda_handler({}, context)
-```
-
-**Test: Manual SNS Publish**
+**Kiểm Thử: Manual SNS Publish**
 
 ```bash
 aws sns publish \
-  --topic-arn arn:aws:sns:us-east-1:726411362669:w6-cost-alerts \
-  --message '{"BudgetName":"w6-daily-cost-limit","AlertType":"Budget Threshold Exceeded"}' \
+  --topic-arn arn:aws:sns:us-east-1:726411362669:webapp-group10-daily-budget-100-notification \
+  --message '{"BudgetName":"webapp-group10-daily-budget-100","AlertType":"Budget Threshold Exceeded","BudgetLimit":"$100"}' \
   --region us-east-1
 ```
 
-**Lambda Invocation Được Trigger Bởi SNS**
-
 **Ảnh Chụp Bằng Chứng:**
+- SNS Topic > Subscription trỏ tới Lambda Cost Guard
+![SNS Topic Subscription](./public/sns-subcription.png)
 
-```
-[CHÈN ẢNH CHỤP 1: SNS topic w6-cost-alerts subscriptions hiển thị Lambda target]
-[CHÈN ẢNH CHỤP 2: Lambda CloudWatch logs hiển thị SNS-triggered invocation với Budgets alert message parsed]
-[CHÈN ẢNH CHỤP 3: EC2 instance(s) bị dừng do kết quả của SNS → Lambda → cost guard flow]
-```
+- Lambda / CloudWatch logs của lần SNS trigger
+![Lambda SNS Invocation Logs](./public/lambda-cloudwatch-log.png)
 
----
+- Tài nguyên bị dừng bởi luồng SNS -> Lambda -> Cost Guard
+![Cost Guard Action Result](./public/rds-action-result.png)
 
-### Thành Phần D.1: Cost Data Latency ADR
+#### Bản Ghi Quyết Định Kiến Trúc: Độ Trễ Dữ Liệu Chi Phí (Cost Data Latency ADR)
 
-**Tài Liệu Giả Định: Độ Trễ Trigger Chi Phí**
+**Bối cảnh:**
+Dữ liệu chi phí thực tế của AWS có độ trễ nội tại rất lớn (từ 8 đến 24 giờ) trước khi được tổng hợp và hiển thị trong AWS Billing, Cost Explorer hoặc kích hoạt AWS Budgets Alert. Điều này tạo ra một khoảng trống bảo vệ: một tài nguyên đắt đỏ được khởi tạo vô ý có thể tiêu tốn ngân sách lớn trước khi Alert thực tế từ AWS Budget kịp nổ (nhất là trong môi trường Workshop kéo dài chỉ 48-72 giờ).
 
-Chi phí AWS và chi phí data có độ trễ nội tại:
-- **Độ trễ điển hình**: 8–24 giờ từ tạo/sử dụng resource cho tới khi xuất hiện trong Cost Explorer hoặc Budgets
-- **Độ trễ trigger Budgets**: Tổng hợp chi phí thường hoàn thành vào khoảng ~02:00 UTC hôm sau; alerts có thể fire chiều muộn (UTC) hoặc sáng sớm (UTC) của hôm sau
-- **Workshop account (48 giờ tổng)**: Một alert Budgets cost-triggered thực sự có thể KHÔNG fire trong cửa sổ W6 (triển khai Thứ Hai → demo Thứ Sáu). Đây là hành vi AWS dự kiến, KHÔNG phải điều kiện thất bại.
+**Quyết định thiết kế để giải quyết độ trễ:**
+Để giải quyết triệt để và đảm bảo tính hiệu quả thực tế ("defense-in-depth"), chúng tôi triển khai chiến lược bảo vệ kép độc lập (Double-layered Cost Control):
 
-**Phương Pháp Xác Minh:**
-1. ✓ **Trigger theo lịch (daily cron)** — SẼ thực thi và demo hành động dừng (demonstrable)
-2. ✓ **Dây SNS** — Được test qua manual SNS publish để hiển thị flow SNS → Lambda (demonstrable)
-3. ⊘ **Trigger do chi phí thực từ Budgets alert** — Có thể không fire trong 48h vì độ trễ chi phí (dự kiến; không bị penalize)
-4. ✓ **Latency ADR** — Tài liệu giải thích tại sao #3 dự kiến (chứng minh hiểu biết vận hành)
+1. **Lớp Bảo Vệ Chủ Động (Cost-Driven Path)**: AWS Budget gửi cảnh báo tới `webapp-group10-daily-budget-100-notification`, sau đó SNS kích hoạt Lambda `webapp-group10-lambda-stop`. Cơ chế này đóng vai trò là nhánh phản ứng tự động khi chi phí vượt ngưỡng trong môi trường vận hành thực tế.
+2. **Lớp Bảo Vệ Định Kỳ (Daily Scheduler Fallback)**: EventBridge Scheduler vẫn chạy hằng ngày như một lớp dự phòng độc lập, bảo đảm các tài nguyên dev không bị bỏ quên ngay cả khi dữ liệu cost chưa kịp cập nhật.
+3. **Giải Pháp Mô Phỏng (Verification Bypass)**: Trong workshop, dữ liệu cost thật không cập nhật đủ nhanh để ép Budget alert nổ đúng lúc demo. Vì vậy, nhóm publish test message thủ công vào SNS topic để xác minh trọn vẹn chuỗi `SNS -> Lambda -> hành động dừng tài nguyên`.
 
-**Kết Luận**: Cost Guard automation sẵn sàng cho production. Trong một account thực tế (>14 ngày lịch sử), cả đường trigger theo lịch lẫn cost-driven sẽ fire độc lập, cung cấp bảo vệ defense-in-depth cho kiểm soát chi phí.
+**Kết luận:**
+Giải pháp Cost Guard này phù hợp với production vì kết hợp cả nhánh theo lịch và nhánh theo ngưỡng chi phí. Trong workshop, việc dùng test SNS message là cần thiết để bù cho độ trễ 8-24 giờ của dữ liệu AWS Budgets nhưng vẫn chứng minh được hành động tự động hóa đầu cuối.
 
 ---
 
