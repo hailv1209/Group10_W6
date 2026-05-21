@@ -1211,7 +1211,7 @@ Trusted Advisor cảnh báo backend Security Group cho phép inbound SSH từ In
 
 ## Evidence — Trusted Advisor Finding
 
-<img width="1582" height="316" alt="Trusted Advisor SG Warning" src="https://github.com/user-attachments/assets/19d917a4-572c-47ca-9b5f-75a85bbf100e" />
+<img width="1582" height="316" alt="image" src="https://github.com/user-attachments/assets/4841fb81-ea5d-422e-ad01-45e1070dc9f9" />
 
 > Figure 1 — Trusted Advisor phát hiện Security Group cho phép unrestricted access tới port 22.
 
@@ -1221,7 +1221,7 @@ Trusted Advisor cảnh báo backend Security Group cho phép inbound SSH từ In
 
 Sau khi kiểm tra trực tiếp Security Group backend, xác nhận rule SSH public thực sự tồn tại.
 
-<img width="1664" height="676" alt="Security Group Open SSH" src="https://github.com/user-attachments/assets/62f3b3dd-8e36-4d0c-8a4f-6f57b4975a5e" />
+<img width="1552" height="727" alt="image" src="https://github.com/user-attachments/assets/a0b86839-2992-4919-a82f-3e288336eb61" />
 
 > Figure 2 — Backend EC2 Security Group cho phép inbound SSH từ `0.0.0.0/0`.
 
