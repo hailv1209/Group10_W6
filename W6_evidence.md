@@ -541,28 +541,63 @@ Period: 5 minutes
 
 **Widget 2: RDS Database Connections**
 ```
-Namespace: AWS/RDS
-Metric: DatabaseConnections
-Dimensions: DBInstanceIdentifier=webapp-group10-database
-Statistic: Average
-Period: 5 minutes
+Metric = webapp-group10/backend bedrock_agent_latency_ms
+Environment  = production
+Model = us.amazon.nova-micro-v1:0
+Operation = agent_stream
+Service = backend
+Region = us-east-1
+Period = 5 minutes
+Statistic = Average
+Unit = Milliseconds
+```
+```
+Metric = webapp-group10/backend bedrock_agent_invocation_count
+Environment = production
+Model = us.amazon.nova-micro-v1:0
+Operation = agent_stream
+Service = backend
+Region = us-east-1
+Period  = 5 minutes
+Statistic = Average
+Unit = Count
 ```
 
 **Widget 3: Lambda Health Check Errors**
 ```
-Namespace: AWS/Lambda
-Metric: Errors
-Dimensions: FunctionName=webapp-group10-health
-Statistic: Sum
-Period: 5 minutes
+Metric = ECS MemoryUtilization
+ClusterName = webapp-group10-backend-cluster
+ServiceName = webapp-group10-backend-task-definition-service
+Region = us-east-1
+Period = 5 minutes
+Statistic = Average
+Unit  = Percent
 ```
-
+```
+Metric = ECS LiveTaskCount
+ClusterName = webapp-group10-backend-cluster
+ServiceName = webapp-group10-backend-task-definition-service
+Region = us-east-1
+Period = 5 minutes
+Statistic = Average
+Unit = Count
+```
+```
+Metric  = ECS CPUUtilization
+ClusterName  = webapp-group10-backend-cluster
+ServiceName  = webapp-group10-backend-task-definition-service
+Region  = us-east-1
+Period  = 5 minutes
+Statistic  = Average
+Unit  = Percent
+```
 **Ảnh Chụp Bằng Chứng:**
 
 <img width="1563" height="713" alt="image" src="https://github.com/user-attachments/assets/ffdc3251-c58c-4d25-a390-e3828daba66a" />
 
 
-<img width="1652" height="791" alt="image" src="https://github.com/user-attachments/assets/f1f3c7f8-243e-44c9-86ac-569b96bff409" />
+<img width="1632" height="468" alt="image" src="https://github.com/user-attachments/assets/8d5009c3-ba1d-4230-9869-e79e37cf1f6e" />
+
 
 ---
 
