@@ -47,14 +47,14 @@ Tất cả tài nguyên có tính phí triển khai trong W6 được gắn tag 
 
 | Khóa Tag | Mục Đích | Giá Trị Cho Phép | Ví Dụ | Cách Thực Thi |
 |---------|---------|-----------------|---------|-------------|
-| `Owner` | Thành viên nhóm/trưởng nhóm chịu trách nhiệm | Địa chỉ email (CHỮ HOA chính xác) | `hungqt@xbrain.vn` | Điểm chịu trách nhiệm duy nhất; dùng cho báo cáo hóa đơn |
-| `Environment` | Tầng triển khai | `dev` (không bao giờ `Dev`, `DEV`) | `dev` | Lọc chi phí; resource non-dev không nên tồn tại trong workshop account |
+| `Owner` | Thành viên nhóm/trưởng nhóm chịu trách nhiệm | Địa chỉ email (CHỮ HOA chính xác) | `hungqt` | Điểm chịu trách nhiệm duy nhất; dùng cho báo cáo hóa đơn |
+| `Environment` | Tầng triển khai | `Production` hoặc `dev` | `Production` | Lọc chi phí; không dev resource trong prod |
 | `CostCenter` | Định danh nhóm cho phân bổ chi phí | Group ID ở định dạng `GN` | `G10` | Bắt buộc cho FinOps; cho phép so sánh chi phí giữa các nhóm |
 | `Application` | Tên workload (CHỮ HOA chính xác) | Tên ứng dụng | `AIRagChatbot` | Theo dõi Cost Driver; phải khớp với tên repo hoặc tên dịch vụ |
 | `Name` | Tên của resource được gắn tag | Tên resource | `webapp-group10-frontend-bucket` | Dễ dàng phân biệt được các runtime đang chạy trong dịch vụ đó |
 
 **Cách Thực Hiện**:
-- Tag PHẢI được áp dụng khi tạo resource cho EC2, RDS, Lambda, S3, API Gateway, EFS, ALB
+- Tag PHẢI được áp dụng khi tạo resource cho RDS, Lambda, S3, API Gateway, EFS, ALB
 - Giá trị tag PHẢI khớp quy tắc chữ hoa chính xác — `dev` và `Dev` là khác nhau trong Cost Explorer filters
 - Chiến lược gắn tag được thực thi qua IaC (CloudFormation/Terraform) — không gắn tag thủ công sau khi tạo resource
 - Kiểm tra hàng tháng: Cost Explorer nhóm theo tag `Application` để xác nhận tất cả resource có tính phí đều được gắn tag
