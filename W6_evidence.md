@@ -215,7 +215,7 @@ Tất cả tài nguyên có tính phí triển khai trong W6 được gắn tag 
 | **Tên loại Budget** | `webapp-group10-budget-150` |
 | **Loại Budget** | từ ngày 20/05-23/05 |
 | **Giới Hạn Số Tiền** | $145 |
-| **Ngưỡng Cảnh Báo** | ngưỡng 1 trên $75, ngưỡng 2 trên $90, ngưỡng 3 cảnh báo $145  |
+| **Ngưỡng Cảnh Báo** | ngưỡng 1 trên $70, ngưỡng 2 trên $90, ngưỡng 3 cảnh báo $145  |
 | **Người Nhận Cảnh Báo** | SNS topic cho thông báo nhóm |
 
 | Cài Đặt | Giá Trị |
@@ -223,7 +223,7 @@ Tất cả tài nguyên có tính phí triển khai trong W6 được gắn tag 
 | **Tên loại Budget** | `webapp-group10-daily-budget-100` |
 | **Loại Budget** | hàng ngày |
 | **Giới Hạn Số Tiền** | $100 |
-| **Ngưỡng Cảnh Báo** | ngưỡng trên $100  |
+| **Ngưỡng Cảnh Báo** | ngưỡng trên $95  |
 | **Người Nhận Cảnh Báo** | Gửi event tới Lambda function để tắt các resource không có tag Environment = Production |
    
 **Ảnh Chụp Bằng Chứng:**
