@@ -82,12 +82,11 @@
 - **Kiến Trúc Phân Tầng**:
   - Cho phép mở rộng độc lập từng lớp compute, network, security và data
 
-**Quyết Định Kiến Trúc Chính (W1–W5):**
-- **Kiến Trúc 3 tầng**: API Gateway → Lambda → RDS + Bedrock
-- **Chiến Lược Lưu Trữ (W2)**: S3 cho embeddings tài liệu, RDS PostgreSQL cho vector store và metadata, EBS gp2 cho database
-- **Lớp Trí Tuệ Nhân Tạo (W3)**: Bedrock Knowledge Base cho indexing tài liệu, Lambda cho điều phối agent, pipeline retrieval đa cấp
-- **Tối Ưu Hóa Mạng (W5)**: VPC với public/private subnet, NAT Gateway, Security Groups với quyền truy cập tối thiểu, API Gateway authorizer
-- **Mở Rộng & Tính Sẵn Sàng Cao (W5)**: ALB với ELB health checks, Auto Scaling Group cho Lambda container via ECS Fargate, triển khai multi-AZ
+**Kiến trúc hệ thống trên cloud:**
+
+<img width="1015" height="866" alt="image" src="https://github.com/user-attachments/assets/51687d47-757b-495e-9f59-2ae93d5412e5" />
+
+Link to diagram: https://app.diagrams.net/#G1uAov8ZokNK1LBo_zqMDtdrT4d8BFUOMf#%7B%22pageId%22%3A%22_wFuGsi9mvh8PrvmbIV1%22%7D
 
 **Feedback W5 Đã Xử Lý:**
 
