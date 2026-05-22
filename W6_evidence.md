@@ -192,21 +192,6 @@ Tất cả tài nguyên có tính phí triển khai trong W6 được gắn tag 
 ### Thành Phần 2: Kích Hoạt Cost Allocation Tags (chờ đợi anh Nghĩa)
 
 **Trạng Thái: ĐÃ KÍCH HOẠT trong Billing Console**
-
-**Ảnh Chụp Bằng Chứng:**
-
-```
-AWS Billing Console → Cost allocation tags
-✓ Owner — Trạng Thái: Hoạt Động (Kích Hoạt: 19 tháng 5, 2026)
-✓ Environment — Trạng Thái: Hoạt Động (Kích Hoạt: 19 tháng 5, 2026)
-✓ CostCenter — Trạng Thái: Hoạt Động (Kích Hoạt: 19 tháng 5, 2026)
-✓ Application — Trạng Thái: Hoạt Động (Kích Hoạt: 19 tháng 5, 2026)
-
-[CHÈN ẢNH CHỤP: AWS Billing Console > Settings > Cost allocation tags với cả 4 tags hiển thị trạng thái "Active"]
-```
-
-**Lưu Ý Quan Trọng**: Kích hoạt trong Billing console là một bước RIÊNG BIỆT từ việc gắn tag cho resource. Tag phải được kích hoạt ở đây để xuất hiện như dimension lọc trong Cost Explorer — nếu không thực hiện bước này, tag tồn tại trên resource nhưng sẽ không nhìn thấy được trong phân tích Cost Explorer.
-
 ---
 
 ### Thành Phần 3: Cấu Hình Công Cụ Giám Sát Chi Phí
@@ -1181,7 +1166,7 @@ def lambda_handler(event: dict[str, Any] | None, context: Any) -> dict[str, Any]
 
 **Phân Tích Trade-Off (1–2 câu):**
 
-> Chúng tôi chọn security guards ephemeral (EventBridge→Lambda cho phát hiện thực tế + daily fallback scan) thay vì dịch vụ giám sát luôn bật (GuardDuty, Security Hub) để nằm trong cap chi phí $150 trong khi duy trì phát hiện mối đe dọa liên quan đến production. Chi phí hàng giờ của GuardDuty (~$1–2/ngày) cộng Security Hub (~$0.50–1/ngày) sẽ tiêu thụ ~2% budget W6 của chúng tôi cho giá trị gia tăng; thay vào đó, chúng tôi triển khai automation được kích hoạt bởi sự kiện đạt được 95% cùng coverage (SG misconfigures, S3 public access) ở chi phí margin bằng không qua Lambda execution.
+> Chúng tôi chọn self-healing security guards (Lambda + EventBridge cho phát hiện & remediation) thay vì dịch vụ giám sát liên tục (GuardDuty $1–2/ngày, Security Hub $0.50–1/ngày, Config $1/rule/tháng) để giữ trong cap $150 W6, vì vậy bảo vệ attack surface (SG misconfig, S3 public) được thực hiện tự động 24/7 mà không tăng chi phí hàng tháng. Preventive controls (S3 Block Public Access, bucket policy encryption) cung cấp defense-in-depth; tự động remediation tối thiểu thời gian phản ứng; latency ADR giải thích vì sao cost-driven trigger có thể trễ trong 48h workshop window. Production equivalent: Always-on GuardDuty + managed rules (hiện tại tắt do cost); Lambda-based remediation pattern lên kế hoạch scale lên khi cost coverage cho phép.
 
 ---
 
