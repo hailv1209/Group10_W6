@@ -260,13 +260,13 @@ Tất cả tài nguyên có tính phí triển khai trong W6 được gắn tag 
 
 ### Thành Phần 4: Baseline Cost Breakdown (Tag Dimension: CostCenter=G10)
 
-Dữ liệu chi phí được quan sát trong khoảng thời gian từ **20/05/2026 đến 23/05/2026** sau khi Cost Allocation Tags đã được kích hoạt và hệ thống được redeploy hoàn chỉnh. AWS Cost Explorer hiện đã hiển thị cost breakdown theo tag dimension `CostCenter=G10` với tổng chi phí ghi nhận là **$18.41** trên 32 AWS services. Ba cost drivers lớn nhất hiện tại gồm: **EC2-Other ($1.87)**, **CloudTrail ($1.85)** và **Relational Database Service ($0.75)**. Chi phí EC2-Other chủ yếu đến từ EBS volume usage, data transfer và các infrastructure-related charges hỗ trợ compute workload. Một điểm đáng chú ý là CloudTrail có mức chi phí tương đối cao so với kỳ vọng của môi trường student/lab, cho thấy auditing và management event logging đang được bật khá đầy đủ để phục vụ security monitoring và operational hardening trong W6. Trong khi đó, RDS vẫn duy trì mức chi phí ổn định và thấp, phù hợp với workload inference và metadata storage hiện tại. Các dịch vụ compute chính như ECS, Lambda và Elastic Load Balancing đều chưa tạo ra áp lực chi phí đáng kể ở giai đoạn hiện tại.
+Dữ liệu chi phí được quan sát trong khoảng thời gian từ **20/05/2026 đến 23/05/2026** sau khi Cost Allocation Tags đã được kích hoạt và hệ thống được redeploy hoàn chỉnh. AWS Cost Explorer hiện đã hiển thị cost breakdown theo tag dimension `CostCenter=G10` với tổng chi phí ghi nhận là **$18.41** trên 32 AWS services. Ba cost drivers lớn nhất hiện tại gồm: **EC2-Other ($1.87)**, **CloudTrail ($1.85)** và **Relational Database Service ($0.75)**. Chi phí EC2-Other chủ yếu đến từ data transfer và các infrastructure-related charges hỗ trợ compute workload. Một điểm đáng chú ý là CloudTrail có mức chi phí tương đối cao so với kỳ vọng của môi trường student/lab, cho thấy auditing và management event logging đang được bật khá đầy đủ để phục vụ security monitoring và operational hardening trong W6. Trong khi đó, RDS vẫn duy trì mức chi phí ổn định và thấp, phù hợp với workload inference và metadata storage hiện tại. Các dịch vụ compute chính như ECS, Lambda và Elastic Load Balancing đều chưa tạo ra áp lực chi phí đáng kể ở giai đoạn hiện tại.
 
 #### Top Cost Drivers
 
 | Service | Cost | Observation |
 |---|---|---|
-| EC2-Other | `$1.87` | Chủ yếu là EBS, networking và infrastructure-related charges |
+| EC2-Other | `$1.87` | Chủ yếu là networking và infrastructure-related charges |
 | CloudTrail | `$1.85` | Cao hơn dự kiến do bật auditing và logging đầy đủ |
 | Relational Database Service | `$0.75` | Ổn định, phù hợp với workload hiện tại |
 
@@ -1162,10 +1162,14 @@ def lambda_handler(event: dict[str, Any] | None, context: Any) -> dict[str, Any]
 
 ### Thành Phần 5: Câu Trả Lời Trade-Off Bảo Mật-Chi Phí
 
-**Phân Tích Trade-Off (1–2 câu):**
+**Phân Tích Trade-Off (Lambda + EventBridge cho phát hiện & remediation):**
 
 > Chúng tôi chọn self-healing security guards (Lambda + EventBridge cho phát hiện & remediation) thay vì dịch vụ giám sát liên tục (GuardDuty $1–2/ngày, Security Hub $0.50–1/ngày, Config $1/rule/tháng) để giữ trong cap $150 W6, vì vậy bảo vệ attack surface (SG misconfig, S3 public) được thực hiện tự động 24/7 mà không tăng chi phí hàng tháng. Preventive controls (S3 Block Public Access, bucket policy encryption) cung cấp defense-in-depth; tự động remediation tối thiểu thời gian phản ứng; latency ADR giải thích vì sao cost-driven trigger có thể trễ trong 48h workshop window. Production equivalent: Always-on GuardDuty + managed rules (hiện tại tắt do cost); Lambda-based remediation pattern lên kế hoạch scale lên khi cost coverage cho phép.
 
+**Phân Tích Trade-Off (loại bỏ vpc origin và kéo ALB từ private subnet lên public subnet):**
+
+> Một quyết định tối ưu chi phí đáng chú ý trong W6 là nhóm đã loại bỏ mô hình sử dụng **VPC Origin** và chuyển **Application Load Balancer (ALB)** từ private subnet sang public subnet. Trước đó, kiến trúc private ALB + VPC Origin giúp tăng mức độ isolation nhưng phát sinh thêm chi phí networking và vận hành cho workload có traffic còn thấp. Sau khi đánh giá baseline usage thực tế, nhóm quyết định đơn giản hóa kiến trúc để giảm baseline cost và operational complexity. Việc đưa ALB ra public subnet giúp tiết kiệm chi phí liên quan đến private connectivity và routing components, đồng thời vẫn duy trì được các lớp bảo mật cần thiết như HTTPS, Security Groups và IAM controls. Đây là một trade-off hợp lý giữa security architecture và cost-efficiency trong bối cảnh môi trường student/lab của dự án W6.
+> 
 ---
 
 # Bonus 1: Trusted Advisor Remediations 
