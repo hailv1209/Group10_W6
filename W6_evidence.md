@@ -234,6 +234,12 @@ Tất cả tài nguyên có tính phí triển khai trong W6 được gắn tag 
 [CHÈN ẢNH CHỤP 3: Cost Explorer — Breakdown by Application=AIRagChatbot (verify 100% attribution)]
 ```
 
+#### Chứng minh Cost explorer 
+
+<img width="1608" height="727" alt="image" src="https://github.com/user-attachments/assets/c316102a-c846-4291-8269-2cdf200e550c" />
+
+<img width="1608" height="727" alt="image" src="https://github.com/user-attachments/assets/c0a676be-13a2-4fbd-bce6-f8e0b7efd124" />
+
 
 #### Cài Đặt AWS Budgets Alert
 
@@ -260,6 +266,10 @@ Tất cả tài nguyên có tính phí triển khai trong W6 được gắn tag 
 - `webapp-group10-budget-150`<img width="1387" height="800" alt="image" src="https://github.com/user-attachments/assets/fe7ad90e-75fe-458a-bccc-6a2611741e0a" />
 
 - `webapp-group10-daily-budget-100`<img width="1254" height="759" alt="image" src="https://github.com/user-attachments/assets/8481c38a-f561-480f-a6bb-e509ad606fb8" />
+
+#### Chứng minh Cost Anomaly Detection 
+
+<img width="1608" height="727" alt="image" src="https://github.com/user-attachments/assets/030a2295-b71f-4e40-8ecd-48ecbd7fe932" />
 
 ---
 
