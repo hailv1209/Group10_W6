@@ -14,7 +14,7 @@
 | **Repository** | https://github.com/hailv1209/XBrain_Group10|
 | **Ngày Triển Khai** | 19 tháng 5, 2026 |
 | **AWS Account** | 726411362669 |
-| **Tổng Chi Phí (W6)** | USD ~[Chi phí] (≤ $150) |
+| **Tổng Chi Phí (W6)** | Tổng chi phí hiện tại của hệ thống là khoảng **USD ~$25.37**, vẫn nằm an toàn dưới giới hạn **$150 Cost Cap** theo hard rule của mentor. So với tuần trước khi nhóm từng phát sinh chi phí khoảng **$1600**, chi phí vận hành hiện tại đã được giảm khoảng **63 lần** (~98.4%), cho thấy các hoạt động cost optimization và infrastructure simplification trong W6 đã mang lại hiệu quả đáng kể. |
 
 ---
 
