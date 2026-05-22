@@ -216,7 +216,7 @@ Tất cả tài nguyên có tính phí triển khai trong W6 được gắn tag 
 | **Loại Budget** | từ ngày 20/05-23/05 |
 | **Giới Hạn Số Tiền** | $145 |
 | **Ngưỡng Cảnh Báo** | ngưỡng 1 trên $70, ngưỡng 2 trên $90, ngưỡng 3 cảnh báo $145  |
-| **Người Nhận Cảnh Báo** | SNS topic cho thông báo nhóm |
+| **Người Nhận Cảnh Báo** | Gửi email tới cho Finance team |
 
 | Cài Đặt | Giá Trị |
 |---------|-------|
