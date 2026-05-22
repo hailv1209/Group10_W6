@@ -1061,7 +1061,8 @@ def lambda_handler(event: dict[str, Any] | None, context: Any) -> dict[str, Any]
 
 **Ảnh Chụp Bằng Chứng EventBridge rule (CloudTrail API events) + Daily scan:**
 <img width="1662" height="602" alt="image" src="https://github.com/user-attachments/assets/0568a1ef-d083-44ff-a6b1-50af891848c3" />
-
+<img width="1624" height="711" alt="image" src="https://github.com/user-attachments/assets/e7b6df31-5d7c-412e-9888-e42ebe05f8ac" />
+<img width="1636" height="808" alt="image" src="https://github.com/user-attachments/assets/33362c80-7351-4f65-9821-40c0af1b497c" />
 
 
 ### Thành Phần 3: Demo Auto-Remediation (Trước/Sau + CloudTrail)
