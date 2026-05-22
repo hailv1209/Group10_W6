@@ -228,7 +228,7 @@ Tất cả tài nguyên có tính phí triển khai trong W6 được gắn tag 
    
 **Ảnh Chụp Bằng Chứng:**
 
-- `webapp-group10-budget-150`<img width="1387" height="800" alt="image" src="https://github.com/user-attachments/assets/fe7ad90e-75fe-458a-bccc-6a2611741e0a" />
+- `webapp-group10-budget-150`<img width="1269" height="727" alt="image" src="https://github.com/user-attachments/assets/fadb8819-4535-44ee-a097-0904eb8ab7fd" />
 
 - `webapp-group10-daily-budget-100`<img width="1254" height="759" alt="image" src="https://github.com/user-attachments/assets/8481c38a-f561-480f-a6bb-e509ad606fb8" />
 
