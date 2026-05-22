@@ -162,26 +162,26 @@ Tất cả tài nguyên có tính phí triển khai trong W6 được gắn tag 
     <img width="1104" height="696" alt="image" src="https://github.com/user-attachments/assets/73579a4b-156a-4318-8b78-42fc61f10acd" />
 
 - **Network Resources**:
-  - VPC — Tags: Owner=hungqt, CostCenter=G10, Application=AIRagChatbot, Environment=Production
+  - `VPC` — Tags: Owner=hungqt, CostCenter=G10, Application=AIRagChatbot, Environment=Production
     
     <img width="746" height="602" alt="image" src="https://github.com/user-attachments/assets/3e62a996-3d5e-4705-9834-0b7a778d1d08" />
     
-  - Subnets — Tags: Owner=hungqt, CostCenter=G10, Application=AIRagChatbot, Environment=Production
+  - `Subnets` — Tags: Owner=hungqt, CostCenter=G10, Application=AIRagChatbot, Environment=Production
     
-    <img width="867" height="675" alt="image" src="https://github.com/user-attachments/assets/0fe59c70-787e-484e-95e4-e0f2d88c70dc" />
-    
-  - NAT Gateway — Tags: Owner=hungqt, CostCenter=G10, Application=AIRagChatbot, Environment=Production
+    <img width="1591" height="561" alt="image" src="https://github.com/user-attachments/assets/b3de0fd7-1e1c-4d95-99d8-f0b0d7b303d3" />
+
+  - `NAT Gateway` — Tags: Owner=hungqt, CostCenter=G10, Application=AIRagChatbot, Environment=Production
     
     <img width="585" height="682" alt="image" src="https://github.com/user-attachments/assets/97bbe30a-36ea-4c61-92e5-2575b0ff4fdd" />
     
   - Security Groups — Tags: Owner=hungqt, CostCenter=G10, Application=AIRagChatbot, Environment=Production
     
-    <img width="683" height="688" alt="image" src="https://github.com/user-attachments/assets/1521cb75-6661-4910-9b27-a4644657fc18" />
+    <img width="1605" height="468" alt="image" src="https://github.com/user-attachments/assets/6cd3b578-2901-4878-b57a-252a3b749597" />
 
 - **Storage**:
   - S3 Bucket — Tags: Owner=hungqt, CostCenter=G10, Application=AIRagChatbot, Environment=Production
     
-    <img width="1423" height="654" alt="image" src="https://github.com/user-attachments/assets/d3730e47-bb3c-487c-96df-cc137992a96f" />
+   <img width="1597" height="394" alt="image" src="https://github.com/user-attachments/assets/f8336164-44eb-4c6f-b6fc-0b0c8484f999" />
     
   - EFS — Tags: Owner=hungqt, CostCenter=G10, Application=AIRagChatbot, Environment=Production
      
@@ -211,36 +211,44 @@ AWS Billing Console → Cost allocation tags
 
 ### Thành Phần 3: Cấu Hình Công Cụ Giám Sát Chi Phí
 
-**Công Cụ Được Chọn: AWS Cost Explorer + AWS Budgets**
+**Công Cụ Được Chọn: AWS Cost Explorer + AWS Budgets + Cost Anomaly Detection**
 
-#### Cài Đặt Cost Explorer
+#### Cost Explorer Setup
 
 **Cấu Hình Lọc:**
-- **Chiều**: Tag → `CostCenter`
-- **Giá Trị**: `G10`
-- **Khoảng Thời Gian**: 7 ngày gần đây (hoặc khoảng thời gian triển khai lại W6)
+- **Primary Dimension**: Tag → `CostCenter`
+- **Filter Value**: `G10`
+- **Secondary Dimension**: Service
+- **Date Range**: Last 7 days (từ lúc W6 redeploy)
 - **Metrics**: Unblended Cost
-- **Nhóm Theo**: Service
+- **Granularity**: Daily
 
-**Phân Tích Chi Phí Cơ Sở (tính đến 21 tháng 5, 2026):**
+**Baseline Cost Breakdown (as of May 21, 2026):**
 
-| Dịch Vụ | Chi Phí (USD) | % Tổng | Nguyên Nhân |
-|---------|-----------|-----------|--------|
-| **Instances EC2** | ~$28 | 40% | ASG t3.medium (2 instances × 24h) |
-| **RDS PostgreSQL** | ~$22 | 31% | db.t3.small, single-AZ, 50GB storage |
-| **API Gateway** | ~$8 | 11% | ~500K requests, standard tier |
-| **Lambda** | ~$6 | 9% | ~200K invocations, avg 512MB, <1s duration |
-| **Khác (S3, NAT, CloudWatch)** | ~$5 | 8% | S3 storage + NAT Gateway data transfer |
-| **TỔNG** | **~$69** | **100%** | *Nằm dưới cap $150 rất nhiều* |
+| Service | Cost (USD) | % Tổng | Chi Tiết Driver |
+|---------|-----------|--------|--------|
+| **ECS Fargate** | ~$35–42 | 50–55% | 3 tasks × ~12–14 hours/day (api-service, worker, consumer), 1 vCPU + 2GB RAM mỗi task |
+| **RDS PostgreSQL** | ~$18–22 | 25–30% | db.t3.micro (single-AZ), 50GB storage, ~200 connections/day |
+| **Lambda** | ~$5–8 | 8–12% | health-ui + health (2 functions), ~50K invocations, avg 128MB, <1s duration |
+| **NAT Gateway** | ~$4–5 | 5–7% | ~2GB/day outbound data (ECS→Bedrock calls) |
+| **ALB** | ~$2–3 | 3–4% | 1 ALB, ~1K requests/day, ~50 new connections/day |
+| **S3 + EFS** | ~$1–2 | 1–2% | Minimal: infrequent access + EFS bursting |
+| **CloudWatch** | ~$1 | 1% | Logs + custom metrics (free tier mostly) |
+| **TOTAL** | **~$70–80** | **100%** | *Nằm dưới cap $150 an toàn* |
 
-**Nhận Xét:**
-EC2 và RDS là 2 nguyên nhân chi phí hàng đầu (~71% cộng lại). Điều này phù hợp với lựa chọn kiến trúc 3 tầng — compute và data là các lớp workload nặng nhất. Chi phí EC2 có thể kiểm soát bằng cách giảm ASG và sử dụng các instance type nhỏ hơn; chi phí RDS được thúc đẩy bởi database luôn bật (cần thiết cho tính sẵn sàng của ứng dụng). Tất cả chi phí đều có chủ đích và được đo lường; không phát hiện resource idle nào.
+**Cost Driver Phân Tích:**
+- **#1 Driver: ECS Fargate** (50–55%) — Backend compute liên tục. Tối ưu: auto-scale tasks down khi idle (off-peak)
+- **#2 Driver: RDS** (25–30%) — Always-on database. Tối ưu: không thể giảm thêm mà không ảnh hưởng availability
+- **#3 Driver: NAT Gateway** (5–7%) — Bedrock API calls. Tối ưu: VPC endpoint cho Bedrock (nếu available) hoặc batch calls
 
 **Ảnh Chụp Bằng Chứng:**
 
 ```
-[CHÈN ẢNH CHỤP: AWS Cost Explorer được lọc theo CostCenter=G10, nhóm theo Service, hiển thị phân tích 7 ngày với chi phí từng dịch vụ và tỷ lệ phần trăm]
+[CHÈN ẢNH CHỤP 1: AWS Cost Explorer — Filtered by CostCenter=G10, grouped by Service, last 7 days]
+[CHÈN ẢNH CHỤP 2: Cost Explorer — Trend chart showing daily cost trajectory]
+[CHÈN ẢNH CHỤP 3: Cost Explorer — Breakdown by Application=AIRagChatbot (verify 100% attribution)]
 ```
+
 
 #### Cài Đặt AWS Budgets Alert
 
