@@ -244,13 +244,13 @@ Tất cả tài nguyên có tính phí triển khai trong W6 được gắn tag 
 | Monitoring Scope | All AWS Services |
 | Monitor ARN | `arn:aws:ce::726411362669:anomalymonitor/fa9f5deb-331c-459a-9588-5f1dc469fea4` |
 | Creation Date | `2026-05-20` |
-| Alert Subscriptions | `1 subscription configured` |
+| Alert Subscriptions | `FinanceTeam` |
 | Managed By | AWS |
 
 **Ảnh Chụp Bằng Chứng cấu hình:**
 
 <img width="1278" height="518" alt="image" src="https://github.com/user-attachments/assets/73655b00-64af-42a3-bab9-1096df5a1d3f" />
-
+<img width="1653" height="709" alt="image" src="https://github.com/user-attachments/assets/7da0b3db-1936-4775-bd65-0f339708e2b9" />
 
 **Ảnh Chụp Bằng Chứng Detected anomalies:**
 
@@ -644,9 +644,7 @@ CLOUDWATCH_METRICS_NAMESPACE: "webapp-group10/backend"
 
 **Bố Cục Dashboard:**
 
-#### Hàng 1: Custom Business Metrics (webapp-group10/backend)
-
-**Widget 1: Backend Error Rate (Custom Metric)**
+#### Widget 1: Backend Error Rate (Custom Metric)
 ```
 Namespace: webapp-group10/backend
 Metric: BackendErrorRate
@@ -656,9 +654,8 @@ Period: 5 minutes
 ```
 **Tại Sao Metric Này**: Đây là custom metric do ứng dụng backend chủ động push lên. Nó đo tỷ lệ lỗi ở tầng business logic (ví dụ: lỗi inference AI, lỗi kết nối DB nội bộ). Metric này quan trọng vì nó phản ánh trực tiếp trải nghiệm người dùng, thứ mà các metric hạ tầng mặc định không đo được.
 
-#### Hàng 2: Standard Infrastructure Metrics
 
-**Widget 2: Bedrock Latency**
+#### Widget 2: Bedrock Latency
 ```
 Metric = webapp-group10/backend bedrock_agent_latency_ms
 Environment  = production
@@ -682,7 +679,7 @@ Statistic = Average
 Unit = Count
 ```
 
-**Widget 3: ECS Task Metrics**
+#### Widget 3: ECS Task Metrics
 ```
 Metric = ECS MemoryUtilization
 ClusterName = webapp-group10-backend-cluster
