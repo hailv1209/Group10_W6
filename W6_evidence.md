@@ -212,7 +212,7 @@ Tất cả tài nguyên có tính phí triển khai trong W6 được gắn tag 
 | Cài Đặt | Giá Trị |
 |---------|-------|
 | **Tên loại Budget** | `webapp-group10-budget-150` |
-| **Loại Budget** | từ ngày 20/05-22/05 |
+| **Loại Budget** | từ ngày 20/05-23/05 |
 | **Giới Hạn Số Tiền** | $145 |
 | **Ngưỡng Cảnh Báo** | ngưỡng 1 trên $75, ngưỡng 2 trên $90, ngưỡng 3 cảnh báo $145  |
 | **Người Nhận Cảnh Báo** | SNS topic cho thông báo nhóm |
@@ -257,28 +257,31 @@ Tất cả tài nguyên có tính phí triển khai trong W6 được gắn tag 
 
 ---
 
-### Thành Phần 4: Quan Sát Chi Phí Cơ Sở
+### Thành Phần 4: Baseline Cost Breakdown (Tag Dimension: CostCenter=G10)
 
-**Quan Sát Chính:**
+Dữ liệu chi phí được quan sát trong khoảng thời gian từ **20/05/2026 đến 23/05/2026** sau khi Cost Allocation Tags đã được kích hoạt và hệ thống được redeploy hoàn chỉnh. AWS Cost Explorer hiện đã hiển thị cost breakdown theo tag dimension `CostCenter=G10` với tổng chi phí ghi nhận là **$18.41** trên 32 AWS services. Ba cost drivers lớn nhất hiện tại gồm: **EC2-Other ($1.87)**, **CloudTrail ($1.85)** và **Relational Database Service ($0.75)**. Chi phí EC2-Other chủ yếu đến từ EBS volume usage, data transfer và các infrastructure-related charges hỗ trợ compute workload. Một điểm đáng chú ý là CloudTrail có mức chi phí tương đối cao so với kỳ vọng của môi trường student/lab, cho thấy auditing và management event logging đang được bật khá đầy đủ để phục vụ security monitoring và operational hardening trong W6. Trong khi đó, RDS vẫn duy trì mức chi phí ổn định và thấp, phù hợp với workload inference và metadata storage hiện tại. Các dịch vụ compute chính như ECS, Lambda và Elastic Load Balancing đều chưa tạo ra áp lực chi phí đáng kể ở giai đoạn hiện tại.
 
-1. **Nguyên Nhân Chi Phí Hàng Đầu: Compute (EC2, Lambda) 49%**
-   - ALB + ASG hosting containerized Lambda phù hợp cho workload inference volume cao; có thể tối ưu bằng cách giảm ASG min capacity từ 2 xuống 1 vào giờ off-peak (không thực hiện tuần này vì yêu cầu HA)
+#### Top Cost Drivers
 
-2. **Nguyên Nhân Thứ Hai: Lưu Trữ Liên Tục (RDS, S3) 40%**
-   - RDS db.t3.small là instance nhỏ nhất hỗ trợ truy vấn vector RAG; giảm thêm sẽ ảnh hưởng tiêu cực đến latency inference
-   - Chi phí S3 tối thiểu vì infrequent access và lifecycle policies đã áp dụng trong W5
+| Service | Cost | Observation |
+|---|---|---|
+| EC2-Other | `$1.87` | Chủ yếu là EBS, networking và infrastructure-related charges |
+| CloudTrail | `$1.85` | Cao hơn dự kiến do bật auditing và logging đầy đủ |
+| Relational Database Service | `$0.75` | Ổn định, phù hợp với workload hiện tại |
 
-3. **Bất Ngờ: API Gateway 11% mặc dù traffic thấp**
-   - Chi phí cơ sở ~$3.50/tháng + per-request charges
-   - Có thể giảm bằng cách chuyển logic authorizer API vào Lambda (không cost-effective ở volume request hiện tại)
+---
 
-**Tóm Tắt Kỷ Luật Chi Phí:**
-- Lựa chọn Single-AZ cho W6 (tiết kiệm ~15% so với Multi-AZ)
-- Không Bedrock Provisioned Throughput (dùng on-demand ở ~$0.50/invocation)
-- Không OpenSearch multi-node clustering
-- Không EKS (Lambda + ECS Fargate thay thế)
-- Tất cả resource được đặt để Auto-Stop sau 22:00 UTC cho environment dev
-- **Kết Quả**: Duy trì bộ tính năng hoàn chỉnh (W1–W5) dưới cap $150
+#### Cost Breakdown Evidence
+
+<img width="1608" height="727" alt="image" src="https://github.com/user-attachments/assets/d20d67cb-627f-4555-808d-63da621615b6" />
+
+
+Screenshot should display:
+- Time range: `20/05/2026 → 23/05/2026`
+- Cost Explorer grouped by Service
+- Tag filter: `CostCenter=G10`
+- Total cost and service breakdown
+- Cost usage graph + service table
 
 ---
 
