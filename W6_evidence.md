@@ -198,43 +198,7 @@ Tất cả tài nguyên có tính phí triển khai trong W6 được gắn tag 
 
 **Công Cụ Được Chọn: AWS Cost Explorer + AWS Budgets + Cost Anomaly Detection**
 
-#### Cost Explorer Setup
-
-**Cấu Hình Lọc:**
-- **Primary Dimension**: Tag → `CostCenter`
-- **Filter Value**: `G10`
-- **Secondary Dimension**: Service
-- **Date Range**: Last 7 days (từ lúc W6 redeploy)
-- **Metrics**: Unblended Cost
-- **Granularity**: Daily
-
-**Baseline Cost Breakdown (as of May 21, 2026):**
-
-| Service | Cost (USD) | % Tổng | Chi Tiết Driver |
-|---------|-----------|--------|--------|
-| **ECS Fargate** | ~$35–42 | 50–55% | 3 tasks × ~12–14 hours/day (api-service, worker, consumer), 1 vCPU + 2GB RAM mỗi task |
-| **RDS PostgreSQL** | ~$18–22 | 25–30% | db.t3.micro (single-AZ), 50GB storage, ~200 connections/day |
-| **Lambda** | ~$5–8 | 8–12% | health-ui + health (2 functions), ~50K invocations, avg 128MB, <1s duration |
-| **NAT Gateway** | ~$4–5 | 5–7% | ~2GB/day outbound data (ECS→Bedrock calls) |
-| **ALB** | ~$2–3 | 3–4% | 1 ALB, ~1K requests/day, ~50 new connections/day |
-| **S3 + EFS** | ~$1–2 | 1–2% | Minimal: infrequent access + EFS bursting |
-| **CloudWatch** | ~$1 | 1% | Logs + custom metrics (free tier mostly) |
-| **TOTAL** | **~$70–80** | **100%** | *Nằm dưới cap $150 an toàn* |
-
-**Cost Driver Phân Tích:**
-- **#1 Driver: ECS Fargate** (50–55%) — Backend compute liên tục. Tối ưu: auto-scale tasks down khi idle (off-peak)
-- **#2 Driver: RDS** (25–30%) — Always-on database. Tối ưu: không thể giảm thêm mà không ảnh hưởng availability
-- **#3 Driver: NAT Gateway** (5–7%) — Bedrock API calls. Tối ưu: VPC endpoint cho Bedrock (nếu available) hoặc batch calls
-
-**Ảnh Chụp Bằng Chứng:**
-
-```
-[CHÈN ẢNH CHỤP 1: AWS Cost Explorer — Filtered by CostCenter=G10, grouped by Service, last 7 days]
-[CHÈN ẢNH CHỤP 2: Cost Explorer — Trend chart showing daily cost trajectory]
-[CHÈN ẢNH CHỤP 3: Cost Explorer — Breakdown by Application=AIRagChatbot (verify 100% attribution)]
-```
-
-#### Chứng minh Cost explorer 
+#### Chứng minh Cost explorer
 
 <img width="1608" height="727" alt="image" src="https://github.com/user-attachments/assets/c316102a-c846-4291-8269-2cdf200e550c" />
 
@@ -267,7 +231,27 @@ Tất cả tài nguyên có tính phí triển khai trong W6 được gắn tag 
 
 - `webapp-group10-daily-budget-100`<img width="1254" height="759" alt="image" src="https://github.com/user-attachments/assets/8481c38a-f561-480f-a6bb-e509ad606fb8" />
 
-#### Chứng minh Cost Anomaly Detection 
+
+#### Cài Đặt Cost Anomaly Detection
+
+### Monitor Information
+
+| Field | Value |
+|---|---|
+| Monitor Name | `webapp-group10-cost-anomaly-monitor` |
+| Monitor Type | AWS Services |
+| Monitoring Scope | All AWS Services |
+| Monitor ARN | `arn:aws:ce::726411362669:anomalymonitor/fa9f5deb-331c-459a-9588-5f1dc469fea4` |
+| Creation Date | `2026-05-20` |
+| Alert Subscriptions | `1 subscription configured` |
+| Managed By | AWS |
+
+**Ảnh Chụp Bằng Chứng cấu hình:**
+
+<img width="1278" height="518" alt="image" src="https://github.com/user-attachments/assets/73655b00-64af-42a3-bab9-1096df5a1d3f" />
+
+
+**Ảnh Chụp Bằng Chứng Detected anomalies:**
 
 <img width="1608" height="727" alt="image" src="https://github.com/user-attachments/assets/030a2295-b71f-4e40-8ecd-48ecbd7fe932" />
 
