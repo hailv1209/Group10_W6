@@ -128,7 +128,7 @@ Tất cả tài nguyên có tính phí triển khai trong W6 được gắn tag 
 
 **Kiểm Chứng - Tất Cả Resource Được Gắn Tag:**
 
-- ✅ **Lambda Functions**:
+- **Lambda Functions**:
   - `webapp-group10-health-ui` — Tags: Owner=hungqt, Environment=Production, CostCenter=G10, Application=AIRagChatbot, Name=webapp-group10-lambda-health-ui, Environment=Production
     
     <img width="1740" height="540" alt="image" src="https://github.com/user-attachments/assets/379de332-5d30-4636-9594-2f61cae3a15c" />
@@ -145,22 +145,22 @@ Tất cả tài nguyên có tính phí triển khai trong W6 được gắn tag 
     
     <img width="1708" height="504" alt="image" src="https://github.com/user-attachments/assets/e2bd7229-dc62-41a3-a789-5ed9f3f8cbdc" />
 
-- ✅ **ECR Repositories** :
+- **ECR Repositories** :
   - `webapp-group10/backend` — Có tag: CostCenter=G10, Application=AIRagChatbot, Owner=hungqt, Environment=Production, Name=webapp-group10-backend-ecr-repo
     
     <img width="1382" height="528" alt="image" src="https://github.com/user-attachments/assets/fb672bfc-608f-4ce4-a2e9-05f324a4f831" />
 
-- ✅ **ECS Task Definitions** (1 tasks):
+- **ECS Task Definitions** (1 tasks):
   - `webapp-group10-backend-task-definition` — Có tag: CostCenter=G10, Application=AIRagChatbot, Owner=hungqt, Environment=Production, Name=webapp-group10-backend-task-definition
     
     <img width="1092" height="727" alt="image" src="https://github.com/user-attachments/assets/663da072-efb5-4d7a-8a05-71a76ac6f2ac" />
 
-- ✅ **RDS Database**:
+- **RDS Database**:
   - `webapp-group10-database` — Tags: Owner=hungqt, Environment=Production, CostCenter=G10, Application=AIRagChatbot, Name=webapp-group10-database
  
     <img width="1104" height="696" alt="image" src="https://github.com/user-attachments/assets/73579a4b-156a-4318-8b78-42fc61f10acd" />
 
-- ✅ **Network Resources**:
+- **Network Resources**:
   - VPC — Tags: Owner=hungqt, CostCenter=G10, Application=AIRagChatbot, Environment=Production
     
     <img width="746" height="602" alt="image" src="https://github.com/user-attachments/assets/3e62a996-3d5e-4705-9834-0b7a778d1d08" />
@@ -177,7 +177,7 @@ Tất cả tài nguyên có tính phí triển khai trong W6 được gắn tag 
     
     <img width="683" height="688" alt="image" src="https://github.com/user-attachments/assets/1521cb75-6661-4910-9b27-a4644657fc18" />
 
-- ✅ **Storage**:
+- **Storage**:
   - S3 Bucket — Tags: Owner=hungqt, CostCenter=G10, Application=AIRagChatbot, Environment=Production
     
     <img width="1423" height="654" alt="image" src="https://github.com/user-attachments/assets/d3730e47-bb3c-487c-96df-cc137992a96f" />
