@@ -84,7 +84,8 @@
 
 **Kiến trúc hệ thống trên cloud:**
 
-<img width="1015" height="866" alt="image" src="https://github.com/user-attachments/assets/51687d47-757b-495e-9f59-2ae93d5412e5" />
+<img width="738" height="504" alt="image" src="https://github.com/user-attachments/assets/a8d8fff3-98ef-4cd4-8db4-bb88998545ea" />
+
 
 Link to diagram: https://app.diagrams.net/#G1uAov8ZokNK1LBo_zqMDtdrT4d8BFUOMf#%7B%22pageId%22%3A%22_wFuGsi9mvh8PrvmbIV1%22%7D
 
