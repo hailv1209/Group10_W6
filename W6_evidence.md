@@ -130,11 +130,11 @@ Tất cả tài nguyên có tính phí triển khai trong W6 được gắn tag 
 **Kiểm Chứng - Tất Cả Resource Được Gắn Tag:**
 
 - **Lambda Functions**:
-  - `webapp-group10-health-ui` — Tags: Owner=hungqt, Environment=Production, CostCenter=G10, Application=AIRagChatbot, Name=webapp-group10-lambda-health-ui, Environment=Production
+  - `webapp-group10-health-ui` — Tags: Owner=hungqt, Environment=Production, CostCenter=G10, Application=AIRagChatbot, Name=webapp-group10-lambda-health-ui
     
     <img width="1740" height="540" alt="image" src="https://github.com/user-attachments/assets/379de332-5d30-4636-9594-2f61cae3a15c" />
 
-  - `webapp-group10-health` — Tags: Owner=hungqt, Environment=Production, CostCenter=G10, Application=AIRagChatbot, Name=webapp-group10-health, Environment=Production
+  - `webapp-group10-health` — Tags: Owner=hungqt, Environment=Production, CostCenter=G10, Application=AIRagChatbot, Name=webapp-group10-health
     
     <img width="1709" height="522" alt="image" src="https://github.com/user-attachments/assets/d60663b2-7ef2-469e-8745-b8aa970bb6f2" />
     
